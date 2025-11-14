@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Данные компании{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-content">
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notification show success" style="position: relative; transform: none; margin: 20px 0;">
+                    <i class="fas fa-check-circle notification-icon"></i>
+                    <div class="notification-content">
+                        <div class="notification-message">{{ message }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form class="filters-card" style="margin: 20px 0;" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="filters-header-title" style="margin-bottom: 25px;">
+                <i class="fas fa-building"></i>
+                <span>Данные компании</span>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.company_name.id_for_label }}">{{ form.company_name.label }}:</label>
+                {{ form.company_name }}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.address.id_for_label }}">{{ form.address.label }}:</label>
+                {{ form.address }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}:</label>
+                {{ form.phone }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.company_logo.id_for_label }}">{{ form.company_logo.label }}:</label>
+                
+                {% if form.instance.company_logo %}
+                    <img src="{{ form.instance.company_logo.url }}" alt="Текущий логотип" class="current-company-logo">
+                {% endif %}
+                
+                {{ form.company_logo }}
+            </div>
+
+            <style>
+                .form-group {
+                    margin-bottom: 20px;
+                }
+                .form-group label {
+                    display: block;
+                    margin-bottom: 8px;
+                    font-weight: 500;
+                    color: var(--text-color);
+                    font-size: 14px;
+                }
+                .form-group input, .form-group select {
+                    width: 100%;
+                    padding: 14px 18px;
+                    border: 2px solid var(--border-color);
+                    border-radius: 12px;
+                    font-size: 15px;
+                    font-family: 'Roboto', sans-serif;
+                }
+                .form-group input[type="file"] {
+                    padding: 10px;
+                }
+                .current-company-logo {
+                    max-width: 200px;
+                    height: auto;
+                    border: 2px solid var(--border-color);
+                    border-radius: 8px;
+                    margin-bottom: 10px;
+                    display: block;
+                }
+            </style>
+
+            <div class_ ="form-actions" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <button type="submit" class="btn btn-content">
+                    <i class="fas fa-save"></i>
+                    Сохранить данные
+                </button>
+                <a href="{% url 'settings_page' %}" class="btn" style="margin-left: 15px; background: white; color: var(--text-color); border: 1px solid var(--border-color);">
+                    Назад к настройкам
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

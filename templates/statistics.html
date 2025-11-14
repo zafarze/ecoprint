@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Статистика и Аналитика{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-content">
+
+        <div class="filters-card" style="margin-bottom: 20px;">
+            <div class="filters-header-title">
+                <i class="fas fa-chart-bar"></i>
+                <span>Статистика и Аналитика</span>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card" style="border-left-color: var(--primary-color);">
+                <div class="kpi-icon" style="background: var(--primary-light); color: var(--primary-color);">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-value" id="kpi-total-orders">...</div>
+                    <div class="kpi-label">Всего заказов</div>
+                </div>
+            </div>
+            
+            <div class="kpi-card" style="border-left-color: var(--warning-color);">
+                <div class="kpi-icon" style="background: #fff3cd; color: #856404;">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-value" id="kpi-pending-orders">...</div>
+                    <div class="kpi-label">Заказов в процессе</div>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="border-left-color: var(--success-color);">
+                <div class="kpi-icon" style="background: #d1fae5; color: #065f46;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-value" id="kpi-ready-today">...</div>
+                    <div class="kpi-label">Создано сегодня</div>
+                </div>
+            </div>
+            
+            <div class="kpi-card" style="border-left-color: var(--eco-pink);">
+                <div class="kpi-icon" style="background: #fce7f3; color: #db2777;">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-value" id="kpi-top-product">...</div>
+                    <div class="kpi-label">Топ товар</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-grid">
+            <div class="chart-container filters-card">
+                <h3>Заказы по статусам</h3>
+                <canvas id="statusPieChart"></canvas>
+            </div>
+            <div class="chart-container filters-card">
+                <h3>Активность (последние 7 дней)</h3>
+                <canvas id="activityLineChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="{% static 'js/statistics.js' %}"></script>
+{% endblock %}

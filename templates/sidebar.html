@@ -1,0 +1,45 @@
+{% load static %}
+<nav class="sidebar">
+    
+    <a href="/" class="sidebar-logo-link">
+        <div class="logo">
+            <div class="logo-text">
+                <span class="eco">Эко</span><span class="print">Принт</span>
+            </div>
+        </div>
+    </a>
+    
+    <ul class="sidebar-menu">
+        <li>
+            <a href="/" class="menu-item {% if request.path == '/' %}active{% endif %}">
+                <i class="fas fa-home"></i>
+                <span>Главная</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'statistics_page' %}" class="menu-item {% if 'statistics' in request.path %}active{% endif %}">
+                <i class="fas fa-chart-bar"></i>
+                <span>Статистика</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'product_list' %}" class="menu-item {% if 'products' in request.path %}active{% endif %}">
+                <i class="fas fa-boxes"></i>
+                <span>Товары</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'archive_page' %}" class="menu-item {% if 'archive' in request.path %}active{% endif %}">
+                <i class="fas fa-archive"></i>
+                <span>Архив заказов</span>
+            </a>
+        </li>
+        <li>
+                <a href="{% url 'settings_page' %}" class="menu-item {% if 'settings' in request.path %}active{% endif %}">
+                    <i class="fas fa-cog"></i>
+                    <span>Настройки</span>
+                </a>
+            </li>
+    </ul>
+</nav>

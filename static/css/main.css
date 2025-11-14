@@ -1,0 +1,1786 @@
+:root {
+    --primary-color: #0088cc;
+    --primary-hover: #0077b3;
+    --primary-light: #e6f3f8;
+    --secondary-color: #f0f8ff;
+    --text-color: #2c3e50;
+    --text-light: #6c757d;
+    --border-color: #e1e8ed;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --light-gray: #f8fafc;
+    --medium-gray: #e2e8f0;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+    --eco-pink: #ec4899;
+    --eco-blue: #0088cc;
+    --gradient: linear-gradient(135deg, var(--eco-pink), var(--eco-blue));
+    --gradient-hover: linear-gradient(135deg, #db2777, #0066aa);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    background: var(--gradient);
+    color: white;
+    padding: 25px 0;
+    box-shadow: var(--shadow-lg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    font-size: 28px;
+    font-weight: 700;
+    gap: 15px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.logo-text {
+    display: flex;
+    align-items: center;
+    letter-spacing: 1px;
+}
+
+.eco {
+    color: white;
+    position: relative;
+}
+
+.print {
+    color: white;
+    position: relative;
+}
+
+.logo::before {
+    content: '🦋';
+    font-size: 32px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.header-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 12px 20px;
+    border-radius: 12px;
+	height: 48px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(10px);
+	box-sizing: border-box;
+}
+
+.btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary {
+    background: white;
+    color: var(--primary-color);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: var(--light-gray);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+    border: none;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.filters-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(10px);
+}
+
+.filters-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.filter-group input, .filter-group select {
+    padding: 10px 15px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.filter-group input:focus, .filter-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+}
+
+.search-box {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 15px 12px 45px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+}
+
+.quick-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.quick-filter-btn {
+    padding: 8px 16px;
+    border: 2px solid var(--border-color);
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.quick-filter-btn:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.quick-filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.table-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th {
+    background: var(--light-gray);
+    font-weight: 600;
+    color: var(--text-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+tr:hover {
+    background: var(--primary-light);
+}
+
+tr.urgent {
+    background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
+}
+
+tr.very-urgent {
+    background: linear-gradient(90deg, #fee2e2 0%, #fecaca 100%);
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-ready {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+}
+
+.status-in-progress {
+    background: linear-gradient(135deg, #fed7aa, #fdba74);
+    color: #92400e;
+}
+
+.status-not-ready {
+    background: linear-gradient(135deg, #e9d5ff, #d8b4fe);
+    color: #6b21a8;
+}
+
+.items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--light-gray);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.item-row:hover {
+    background: white;
+    border-color: var(--primary-color);
+    transform: translateX(5px);
+}
+
+.item-status {
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    min-width: 90px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.item-status:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.item-status.ready {
+    background: var(--success-color);
+    color: white;
+}
+
+.item-status.in-progress {
+    background: var(--warning-color);
+    color: white;
+}
+
+.item-status.not-ready {
+    background: #8b5cf6;
+    color: white;
+}
+
+.item-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.item-name {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.item-quantity {
+    color: var(--text-light);
+    font-size: 13px;
+    background: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.item-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--gradient);
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+}
+
+.icon-btn {
+    background: white;
+    border: 2px solid var(--border-color);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-light);
+    font-size: 16px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+	padding: 0 !important;
+    gap: 0;
+    justify-content: center;
+}
+
+.icon-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.icon-btn.delete:hover {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 95vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    animation: modalSlideIn 0.4s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(50px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    background: var(--gradient);
+    color: white;
+    padding: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.3; }
+}
+
+.modal-header-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.modal-header-subtitle {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: white;
+    transition: all 0.3s ease;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg) scale(1.1);
+}
+
+.modal-body {
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.form-section {
+    padding: 30px;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.form-section-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--gradient);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    box-shadow: var(--shadow-md);
+}
+
+.form-section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.form-section-subtitle {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-top: 2px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(0, 136, 204, 0.1);
+    transform: translateY(-2px);
+}
+
+.items-form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.item-form-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    padding: 25px;
+    border: 2px solid var(--border-color);
+    position: relative;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.item-form-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--gradient);
+}
+
+.item-form-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.item-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.item-number-badge {
+    background: var(--gradient);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow-md);
+}
+
+.item-number-badge i {
+    font-size: 12px;
+}
+
+.remove-item-btn {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.remove-item-btn:hover {
+    background: #dc2626;
+    transform: scale(1.1) rotate(90deg);
+}
+
+.item-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.product-type-section {
+    margin-bottom: 20px;
+}
+
+.product-type-label {
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.product-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.product-input-group input {
+    flex: 1;
+}
+
+.product-type-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.product-type-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.product-suggestions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.product-suggestion {
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.product-suggestion:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+    transform: translateY(-2px);
+}
+
+.product-suggestion i {
+    color: var(--primary-color);
+    font-size: 16px;
+}
+
+.custom-select {
+    position: relative;
+}
+
+.custom-select select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 45px;
+    cursor: pointer;
+    background: white;
+}
+
+.custom-select::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.add-item-section {
+    padding: 20px 30px;
+    background: var(--light-gray);
+    border-top: 2px dashed var(--border-color);
+}
+
+.add-item-btn {
+    background: white;
+    color: var(--primary-color);
+    border: 2px dashed var(--primary-color);
+    padding: 16px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+    font-size: 15px;
+}
+
+.add-item-btn:hover {
+    background: var(--gradient);
+    color: white;
+    border-style: solid;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-footer {
+    padding: 25px 30px;
+    background: var(--light-gray);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.order-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.summary-item strong {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-cancel {
+    background: white;
+    color: var(--text-color);
+    border: 2px solid var(--border-color);
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-cancel:hover {
+    background: var(--light-gray);
+    border-color: var(--text-light);
+}
+
+.btn-save {
+    background: var(--gradient);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-save:hover {
+    background: var(--gradient-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.notification {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: white;
+    padding: 20px 25px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    z-index: 1001;
+    max-width: 450px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.success {
+    border-left-color: var(--success-color);
+}
+
+.notification.warning {
+    border-left-color: var(--warning-color);
+}
+
+.notification.error {
+    border-left-color: var(--danger-color);
+}
+
+.notification-icon {
+    font-size: 24px;
+}
+
+.notification.success .notification-icon {
+    color: var(--success-color);
+}
+
+.notification.warning .notification-icon {
+    color: var(--warning-color);
+}
+
+.notification.error .notification-icon {
+    color: var(--danger-color);
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.notification-message {
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.settings-panel {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 20px;
+    display: none;
+}
+
+.settings-panel.active {
+    display: block;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: var(--light-gray);
+    border-radius: 10px;
+}
+
+.setting-label {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.toggle-switch {
+    position: relative;
+    width: 60px;
+    height: 30px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--border-color);
+    transition: .4s;
+    border-radius: 30px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background: var(--gradient);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(30px);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-light);
+}
+
+.empty-state i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+@media (max-width: 768px) {
+    .filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 700px;
+    }
+
+    .item-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-suggestions {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-height: 98vh;
+    }
+
+    .form-section {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+        gap: 20px;
+    }
+}
+
+.logo-link {
+    text-decoration: none;
+    color: inherit; /* Наследует цвет (в нашем случае - белый) */
+    transition: transform 0.3s ease;
+}
+
+.logo-link:hover {
+    transform: scale(1.05); /* Легкий эффект при наведении */
+}
+.logo-link,
+.logo-link:visited, /* Добавляем :visited */
+.logo-link:hover {
+    /* 👇 Используем !important, чтобы гарантированно убрать подчеркивание */
+    text-decoration: none !important; 
+    color: inherit; 
+    transition: transform 0.3s ease;
+}
+
+.logo-link:hover {
+    transform: scale(1.05);
+}
+
+/* === Стили для выпадающего меню (Запрос 1 и 2) === */
+
+/* Выравниваем все иконки в шапке */
+.header-actions {
+    align-items: center;
+}
+
+/* Кнопка-иконка (для Уведомлений) */
+.icon-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%; /* Круглая */
+    padding: 0;
+    font-size: 18px;
+    line-height: 48px;
+    text-align: center;
+}
+
+/* Контейнер для аватара и меню */
+.profile-dropdown {
+    position: relative; /* Обязательно для позиционирования меню */
+    display: inline-block;
+}
+
+/* Стиль кнопки аватара (круглая) */
+.avatar-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 18px;
+    text-align: center;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+	padding: 0 !important;   /* Принудительно убираем padding */
+    gap: 0;                 /* Убираем gap */
+    justify-content: center;
+}
+
+.avatar-btn:hover {
+    border-color: white;
+}
+
+/* Само выпадающее меню */
+.dropdown-menu {
+    display: none; 
+    position: absolute;
+    right: 0;
+    top: 115%; 
+    min-width: 220px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+    z-index: 1001;
+    overflow: hidden; 
+    animation: fadeInDropdown 0.2s ease;
+}
+
+@keyframes fadeInDropdown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Класс .show будет добавляться через JS */
+.dropdown-menu.show {
+    display: block;
+}
+
+/* Ссылки, кнопки и формы внутри меню */
+.dropdown-item,
+.dropdown-item-form button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    font-size: 15px;
+    color: var(--text-color);
+    text-decoration: none;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+}
+
+.dropdown-item:hover,
+.dropdown-item-form button:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.dropdown-item i {
+    width: 20px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.dropdown-item:hover i {
+    color: var(--primary-color);
+}
+
+/* Отдельный стиль для кнопки "Выйти" */
+.logout-btn {
+    color: var(--danger-color);
+}
+.logout-btn:hover {
+    background-color: #fee2e2;
+    color: var(--danger-color);
+}
+.logout-btn:hover i {
+    color: var(--danger-color);
+}
+
+/* Разделитель */
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 8px 0;
+}
+
+.logo::before {
+    content: '🦋'; /* <-- Убедитесь, что здесь снова бабочка */
+    font-size: 32px;
+    animation: float 3s ease-in-out infinite;
+}
+/*
+ * === Стили для нового Сайдбара (Шаг 1) ===
+ */
+
+:root {
+    --sidebar-width: 260px; /* Ширина нашего сайдбара */
+    --sidebar-bg: #ffffff;
+    --sidebar-text: #5c6e80;
+    --sidebar-hover: var(--primary-light);
+    --sidebar-active: var(--gradient);
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    padding: 20px;
+    z-index: 110; /* Выше чем header */
+}
+
+/* Логотип в сайдбаре */
+.sidebar-logo-link {
+    display: block;
+    text-decoration: none !important;
+    padding: 10px 0 30px 10px;
+}
+.sidebar .logo {
+    font-size: 28px;
+}
+.sidebar .logo .eco {
+    color: var(--eco-pink);
+}
+.sidebar .logo .print {
+    color: var(--eco-blue);
+}
+.sidebar .logo::before {
+    /* Бабочка в сайдбаре */
+    font-size: 32px;
+    animation: float 3s ease-in-out infinite;
+}
+
+/* Меню в сайдбаре */
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sidebar-menu .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    
+    /* Стили для ссылок <a> и кнопок <button> */
+    font-family: 'Roboto', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    cursor: pointer;
+    
+    /* Сброс стилей для <button> */
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    
+    transition: all 0.2s ease;
+}
+
+.sidebar-menu .menu-item:hover {
+    background: var(--sidebar-hover);
+    color: var(--primary-color);
+}
+
+/* Активный пункт меню */
+.sidebar-menu .menu-item.active {
+    background: var(--sidebar-active);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.sidebar-menu .menu-item i {
+    width: 22px;
+    text-align: center;
+    font-size: 18px;
+}
+
+.sidebar-menu .menu-item.active i {
+    color: white;
+}
+
+/*
+ * === Стили для Контейнера страницы (Шаг 2) ===
+ */
+
+/* * Это наш НОВЫЙ главный контейнер, 
+ * который будет обертывать Header и Content 
+ */
+.page-container {
+    /* "Отодвигаем" весь контент вправо на ширину сайдбара */
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    transition: all 0.3s ease;
+}
+
+/*
+ * === Адаптация Header (Шаг 3) ===
+ */
+
+/* * Мы "приклеиваем" шапку (header) не к окну, 
+ * а к нашему новому .page-container 
+ */
+header {
+    /* Он уже position: sticky, это идеально! */
+    /* Нам нужно только убедиться, что он вписывается */
+    width: 100%;
+    z-index: 100; /* Сайдбар (110) должен быть выше */
+}
+
+/* * === Стили для реструктуризации Header (Шаг 1) === 
+ */
+
+/* Новый контейнер для левой кнопки "Синхронизировать" */
+.header-actions-left {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+/* * === Стили для кнопки "Новый заказ" на главной (Шаг 2) === 
+ */
+
+/* Превращаем заголовок фильтров во flex-контейнер */
+.filters-header {
+    /* (старые стили остаются) */
+    display: flex;
+    justify-content: space-between; /* Главное правило! */
+    align-items: center;
+}
+
+/* Заголовок (иконка + текст) */
+.filters-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    /* (старые стили для .filters-header остаются тут) */
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* * Новый стиль для кнопки, т.к. она больше не в шапке.
+ * Мы хотим, чтобы она была яркой, как в шапке.
+ */
+.btn-content {
+    background: var(--gradient);
+    color: white;
+    border: none;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-content:hover {
+    background: var(--gradient-hover);
+    color: white; /* Убедимся, что текст белый при наведении */
+}
+
+/*
+ * === Стиль для картинки аватара в Шапке (Header) ===
+ */
+.header-avatar-img {
+    width: 100%;  /* Заполнит 44px (48px - 2px*2 border) */
+    height: 100%; /* Заполнит 44px */
+    object-fit: cover; /* Картинка заполнит круг, не искажаясь */
+    border-radius: 50%;
+}
+
+/* * Убедимся, что сама кнопка-контейнер .avatar-btn 
+ * не имеет внутренних отступов (padding)
+ */
+.avatar-btn {
+    /* ... (убедитесь, что эти стили есть) ... */
+    padding: 0 !important;
+    overflow: hidden; /* Скрывает углы картинки, пока она не загрузилась */
+}
+/*
+ * === Стили для страницы "Настройки" (Карточки) ===
+ */
+
+.settings-grid {
+    display: grid;
+    /* 2 колонки одинаковой ширины */
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 20px;
+}
+
+.settings-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: var(--shadow-md);
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all 0.2s ease-in-out;
+}
+
+.settings-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.settings-card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+}
+
+.settings-card-content h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.settings-card-content p {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 992px) {
+    .settings-grid {
+        /* 1 колонка на маленьких экранах */
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Грид для 2 колонок в модальном окне (Клиент + Ответственный) */
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* Грид для 3 колонок в карточке товара (Кол-во + Срок + Статус) */
+.item-form-grid-3 {
+    display: grid;
+    /* Было: grid-template-columns: 1fr 1fr 1fr; */
+    grid-template-columns: 1fr 1fr 1fr 1fr; /* Стало (4 колонки) */
+    gap: 20px;
+    align-items: start;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+    .form-grid-2,
+    .item-form-grid-3 {
+        grid-template-columns: 1fr; /* 1 колонка на мобильных */
+    }
+}
+
+td[rowspan] {
+    vertical-align: top;
+    padding-top: 18px; /* Такой же отступ, как у обычных ячеек */
+}
+td[rowspan] {
+    vertical-align: top !important;
+    padding-top: 18px !important; /* Отступ как у обычных ячеек */
+}
+
+/* 2. Убираем старые некрасивые фоны с ЦЕЛОЙ строки */
+tr.urgent,
+tr.very-urgent {
+   background: transparent !important;
+   border-left: none !important;
+}
+
+/* 3. Новые классы для ФОНА ЯЧЕЕК ТОВАРА */
+.item-urgent {
+    background-color: #fef3c7; /* Светло-желтый */
+}
+.item-very-urgent {
+    background-color: #fee2e2; /* Светло-красный */
+}
+
+/* 4. Разделительная линия МЕЖДУ товарами одного заказа */
+.item-row-border {
+    /* Эта линия будет видна, т.к. она !important */
+    border-bottom: 1px dashed #e2e8f0 !important;
+}
+
+/* 5. Убедимся, что рамка у объединенных ячеек правильная */
+td[rowspan] {
+    /* Рамка должна быть только внизу, после ВСЕХ товаров */
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* --- Стили для выпадающего списка Ответственных (добавить в конец main.css) --- */
+
+.responsible-dropdown {
+    position: relative;
+}
+
+/* Кнопка с текущим именем */
+.responsible-current {
+    background: #f8fafc; /* Светлый фон */
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 120px; /* Минимальная ширина */
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.responsible-current:hover {
+    background: #eef2f7;
+    border-color: #cbd5e1;
+}
+
+.responsible-current span {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.responsible-current i {
+    margin-left: 8px;
+    color: var(--text-light);
+    font-size: 12px;
+}
+
+/* Меню, которое появляется */
+.responsible-menu {
+    display: none; /* Скрыто по умолчанию */
+    position: fixed; /* Позиционируется через JS */
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+    z-index: 1010; /* Выше всего */
+    overflow: hidden;
+    min-width: 150px;
+}
+
+.responsible-option {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+.responsible-option:hover {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 5px;
+    line-height: 1;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+}
+.notification-close:hover {
+    background-color: #f1f5f9;
+    color: var(--danger-color);
+    transform: rotate(90deg);
+}
+
+/* --- Стили для страницы "Статистика" --- */
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    border-left: 5px solid var(--primary-color);
+}
+
+.kpi-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.kpi-content .kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.2;
+}
+
+.kpi-content .kpi-label {
+    font-size: 15px;
+    color: var(--text-light);
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+}
+
+.chart-container {
+    padding: 25px;
+}
+
+.chart-container h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 992px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+textarea.item-comment {
+    width: 100%;
+    min-height: 70px; /* Немного меньше */
+    padding: 10px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: 'Roboto', sans-serif;
+    resize: vertical; /* Разрешить менять размер по высоте */
+    transition: border-color 0.2s;
+}
+
+textarea.item-comment:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+    outline: none;
+}
+
+/* Стиль для комментария в главной таблице */
+.item-comment-display {
+    font-size: 13px;
+    color: var(--text-light); /* Светло-серый, как у заметок */
+    margin-top: 4px;
+    
+    /* Эти 3 строки нужны для переноса длинных комментариев */
+    white-space: pre-wrap; 
+    max-width: 250px; 
+    word-wrap: break-word; 
+}
+
+/* Делаем название товара в таблице жирным, 
+   чтобы оно отличалось от комментария */
+#ordersTableBody td strong {
+    font-weight: 500;
+    color: var(--text-color);
+}

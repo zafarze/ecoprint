@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мой профил{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-content">
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="filters-card" style="margin: 20px 0;">
+                <div class="filters-header-title" style="margin-bottom: 25px;">
+                    <i class="fas fa-user-edit"></i>
+                    <span>Личная информация</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_first_name">Имя:</label>
+                    {{ user_form.first_name }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_last_name">Фамилия:</label>
+                    {{ user_form.last_name }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_email">Email:</label>
+                    {{ user_form.email }}
+                </div>
+            </div>
+
+            <div class="filters-card" style="margin: 20px 0;">
+                <div class="filters-header-title" style="margin-bottom: 25px;">
+                    <i class="fas fa-image"></i>
+                    <span>Аватар</span>
+                </div>
+                
+                <div class="profile-avatar-upload">
+                    <img src="{{ user.profile.avatar.url }}" alt="Текущий аватар" class="current-avatar">
+                    <div class="form-group">
+                        <label for="id_avatar">Загрузить новый аватар:</label>
+                        {{ profile_form.avatar }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="filters-card" style="margin: 20px 0;">
+                <button type="submit" class="btn btn-content">
+                    <i class="fas fa-save"></i>
+                    Сохранить изменения
+                </button>
+                
+                <a href="{% url 'password_change' %}" class="btn" style="margin-left: 15px; background: white; color: var(--text-color); border: 1px solid var(--border-color);">
+                    <i class="fas fa-lock"></i>
+                    Сменить пароль
+                </a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<style>
+    form input[type="text"],
+    form input[type="email"],
+    form input[type="file"] {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        font-size: 15px;
+        font-family: 'Roboto', sans-serif;
+    }
+    form input[type="file"] {
+        padding: 10px;
+    }
+    .profile-avatar-upload {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    .current-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid var(--border-color);
+    }
+    .profile-avatar-upload .form-group {
+        flex: 1;
+    }
+</style>
+{% endblock %}

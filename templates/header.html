@@ -1,0 +1,46 @@
+{% load static %}
+<header>
+    <div class="header-content">
+        
+        <div class="header-actions-left">
+            <button class="btn" id="syncBtn">
+                <i class="fas fa-sync"></i>
+                Синхронизировать
+            </button>
+        </div>
+
+        <div class="header-actions">
+            
+            <button class="btn icon-btn" id="notificationBtn">
+                <i class="fas fa-bell"></i>
+            </button>
+            
+            <div class="profile-dropdown">
+                
+                <button class="btn avatar-btn" id="avatarBtn">
+                    <img src="{{ request.user.profile.avatar.url }}" class="header-avatar-img">
+                </button>
+                
+                <div class="dropdown-menu" id="profileDropdownMenu">
+                    
+                    <a href="{% url 'profile_page' %}" class="dropdown-item">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Мой профил</span>
+                    </a>
+                    
+                    <div class="dropdown-divider"></div>
+                    
+                    <form action="/logout/" method="post" class="dropdown-item-form">
+                        {% csrf_token %}
+                        <button type="submit" class="dropdown-item logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Выйти</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+</header>

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Управление пользователями{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-content">
+    
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notification show {% if message.tags %}{{ message.tags }}{% else %}success{% endif %}" 
+                     style="position: relative; transform: none; margin: 20px 0;">
+                    <i class="fas {% if message.tags == 'error' %}fa-times-circle{% else %}fa-check-circle{% endif %} notification-icon"></i>
+                    <div class="notification-content">
+                        <div class="notification-message">{{ message }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="filters-card" style="margin-bottom: 20px;">
+            <div class="filters-header">
+                <div class="filters-header-title">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Список пользователей</span>
+                </div>
+                <a href="{% url 'user_create' %}" class="btn btn-content">
+                    <i class="fas fa-user-plus"></i>
+                    Создать пользователя
+                </a>
+            </div>
+        </div>
+        
+        <div class="table-card">
+            <table id="userTable">
+                <thead>
+                    <tr>
+                        <th>Логин (username)</th>
+                        <th>ФИО</th>
+                        <th>Email</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    {% for u in users %}
+                    <tr>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>{{ u.first_name }} {{ u.last_name }}</td>
+                        <td>{{ u.email }}</td>
+                        <td>
+                            {% if u.is_superuser %}
+                                <span class="status-badge status-ready">Админ</span>
+                            {% elif u.is_staff %}
+                                <span class="status-badge status-in-progress">Менеджер</span>
+                            {% else %}
+                                <span class="status-badge status-not-ready">Пользователь</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="{% url 'user_update' u.pk %}" class="icon-btn">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if request.user.pk != u.pk %}
+                                <a href="{% url 'user_delete' u.pk %}" class="icon-btn delete">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

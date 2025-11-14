@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Подтвердить удаление{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-content">
+        
+        <form class="filters-card" style="margin: 20px 0;" method="post">
+            {% csrf_token %}
+            
+            <div class="filters-header-title" style="margin-bottom: 25px;">
+                <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
+                <span>Подтверждение удаления</span>
+            </div>
+            
+            <p style="font-size: 18px; line-height: 1.6;">
+                Вы уверены, что хотите навсегда удалить товар
+                <strong>{{ product_to_delete.name }}</strong>?
+            </p>
+            <p style="color: var(--text-light); margin-top: 10px;">
+                Это действие нельзя будет отменить.
+            </p>
+
+            <div class_ ="form-actions" style="margin-top: 30px;">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i>
+                    Да, удалить
+                </button>
+                <a href="{% url 'product_list' %}" class="btn" style="margin-left: 15px; background: white; color: var(--text-color); border: 1px solid var(--border-color);">
+                    Отмена
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

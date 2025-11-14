@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Типография Эко Принт – Заказы{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="main-content">
+            <div class="filters-card">
+                <div class="filters-header">
+                    <div class="filters-header-title">
+                        <i class="fas fa-filter"></i>
+                        <span>Фильтры и поиск</span>
+                    </div>
+                    
+                    <div class="filters-header-actions">
+                        <button class="btn btn-content" id="addOrderBtn">
+                            <i class="fas fa-plus"></i>
+                            Новый заказ
+                        </button>
+                    </div>
+                    </div>
+                <div class="filter-row">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Поиск по клиенту или товару...">
+                    </div>
+                    <div class="filter-group">
+                        <label for="statusFilter">Статус заказа:</label>
+                        <select id="statusFilter">
+                            <option value="all">Все заказы</option>
+                            <option value="ready">Готовые</option>
+                            <option value="in-progress">В процессе</option>
+                            <option value="not-ready">Не готовые</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="urgencyFilter">Срочность:</label>
+                        <select id="urgencyFilter">
+                            <option value="all">Все</option>
+                            <option value="urgent">Срочные (сегодня/завтра)</option>
+                            <option value="very-urgent">Очень срочные (сегодня)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="quick-filters">
+                    <button class="quick-filter-btn" id="showReadyBtn">
+                        <i class="fas fa-check-circle"></i> Только готовые
+                    </button>
+                    <button class="quick-filter-btn" id="showNotReadyBtn">
+                        <i class="fas fa-clock"></i> Только не готовые
+                    </button>
+                    <button class="quick-filter-btn" id="resetFiltersBtn">
+                        <i class="fas fa-redo"></i> Сбросить фильтры
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>№ заказа</th>
+                            <th>Клиент</th>
+                            <th>Товар</th>
+                            <th>Кол-во</th>
+                            <th>Срок сдачи</th>
+                            <th>Статус</th>
+                            <th>Ответственный</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        </tbody>
+                </table>
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <i class="fas fa-inbox"></i>
+                    <h3>Нет заказов для отображения</h3>
+                    <p>Создайте новый заказ, чтобы начать работу</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="orderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-header-content">
+                    <div>
+                        <h2 id="modalTitle">Новый заказ</h2>
+                        <div class="modal-header-subtitle">Заполните информацию о заказе</div>
+                    </div>
+                    <button class="close-btn" id="closeModalBtn">&times;</button>
+                </div>
+            </div>
+            
+            <div class="modal-body">
+                <form id="orderForm">
+                    <div class="form-section">
+                        <div class="form-section-header">
+                            <div class="form-section-icon"><i class="fas fa-user"></i></div>
+                            <div>
+                                <div class="form-section-title">Информация о заказе</div>
+                                <div class="form-section-subtitle">Укажите данные заказчика</div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="clientName">Имя клиента *</label>
+                            <input type="text" id="clientName" placeholder="Введите имя клиента" required>
+                        </div>
+                        </div>
+
+                    <div class="form-section">
+                        <div class="form-section-header">
+                            <div class="form-section-icon"><i class="fas fa-box"></i></div>
+                            <div>
+                                <div class="form-section-title">Товары и услуги</div>
+                                <div class="form-section-subtitle">Добавьте товары в заказ</div>
+                            </div>
+                        </div>
+                        
+                        <div class="items-form-container" id="itemsFormContainer">
+                            </div>
+                        
+                        <div class="add-item-section">
+                            <button type="button" class="add-item-btn" id="addItemBtn">
+                                <i class="fas fa-plus-circle"></i>
+                                Добавить еще товар
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <div class="order-summary">
+                    <div class="summary-item">
+                        <i class="fas fa-cube"></i>
+                        <span>Товаров: <strong id="itemsCount">0</strong></span>
+                    </div>
+                    <div class="summary-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Готово: <strong id="readyCount">0</strong></span>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" id="cancelBtn">
+                        <i class="fas fa-times"></i>Отмена
+                    </button>
+                    <button type="button" class="btn-save" id="saveBtn">
+                        <i class="fas fa-save"></i>Сохранить заказ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">
+        <div class="notification-content">
+            <div class="notification-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="notification-text">
+                <div class="notification-title" id="notificationTitle"></div>
+                <div class="notification-message" id="notificationMessage"></div>
+            </div>
+            <button class="notification-close" id="notificationCloseBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <template id="itemFormTemplate">
+        <div class="item-form-card">
+            <div class="item-form-header">
+                <span class="item-number-badge">
+                    <i class="fas fa-cube"></i>
+                    Товар <span class="item-number">1</span>
+                </span>
+                <button type="button" class="remove-item-btn" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="product-type-section">
+                <div class="product-type-label">Тип продукции *</div>
+                <div class="product-input-group">
+                    <div class="custom-select" style="width: 100%;"> 
+                        <select class="product-name-select" required> 
+                            <option value="" disabled selected>-- Выберите товар --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-form-grid-3">
+                <div class="form-group">
+                    <label>Количество *</label>
+                    <input type="number" class="item-quantity" placeholder="1" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                            <label>Ответственный</label>
+                            <div class="custom-select" style="width: 100%;">
+                                <select class="item-responsible-user">
+                                    <option value="" disabled selected>-- Выберите... --</option>
+                                </select>
+                            </div>
+                        </div>
+                <div class="form-group">
+                    <label>Срок сдачи *</label>
+                    <input type="date" class="item-deadline-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Статус товара</label>
+                    <div class="custom-select" style="width: 100%;">
+                        <select class="item-status-select">
+                            <option value="not-ready">Не готов</option>
+                            <option value="in-progress">В процессе</option>
+                            <option value="ready">Готов</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 10px;">
+                <label>Комментарий / Заметка</label>
+                <textarea class="item-comment" 
+                          placeholder="Напр: матовая бумага, 300г/м², проверить макет..."></textarea>
+            </div>
+            
+        </div>
+    </template>
+{% endblock content %}
+
+{% block extra_js %}
+
+<script>
+    // Передаем ID пользователя в JS, чтобы app.js мог его использовать
+    const CURRENT_USER_ID = {{ request.user.id }}; 
+</script>
+
+{% endblock %}

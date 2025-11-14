@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Настройки уведомлений{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-content">
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notification show success" style="position: relative; transform: none; margin: 20px 0;">
+                    <i class="fas fa-check-circle notification-icon"></i>
+                    <div class="notification-content">
+                        <div class="notification-message">{{ message }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form class="filters-card" style="margin: 20px 0;" method="post">
+            {% csrf_token %}
+            
+            <div class="filters-header-title" style="margin-bottom: 25px;">
+                <i class="fas fa-bell"></i>
+                <span>Настройки уведомлений</span>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">Звуковые уведомления</span>
+                <label class="toggle-switch">
+                    {{ form.sound_notifications }} <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-item">
+                <span class="setting-label">Всплывающие уведомления</span>
+                <label class="toggle-switch">
+                    {{ form.popup_notifications }} <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-item">
+                <span class="setting-label">Уведомления за день до срока</span>
+                <label class="toggle-switch">
+                    {{ form.day_before_notifications }} <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <style>
+                .setting-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 15px;
+                    padding: 15px;
+                    background: var(--light-gray);
+                    border-radius: 10px;
+                }
+                .setting-label {
+                    font-weight: 500;
+                    color: var(--text-color);
+                }
+            </style>
+
+            <div class_ ="form-actions" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <button type="submit" class="btn btn-content">
+                    <i class="fas fa-save"></i>
+                    Сохранить настройки
+                </button>
+                <a href="{% url 'settings_page' %}" class="btn" style="margin-left: 15px; background: white; color: var(--text-color); border: 1px solid var(--border-color);">
+                    Назад к настройкам
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
