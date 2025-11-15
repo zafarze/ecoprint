@@ -2,55 +2,44 @@
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from rest_framework import viewsets
-from rest_framework import permissions # 👈 1. ДОБАВЛЕН ИМПОРТ
+from rest_framework import viewsets, status, permissions
 from .serializers import OrderSerializer, ProductSerializer, UserSimpleSerializer
 from rest_framework.decorators import api_view
-# Все импорты моделей
-from .models import (Order, Item, Profile, CompanySettings, 
-                     TelegramSettings, Product) 
-from django.contrib.auth.models import User # 👈 2. УБЕДИТЕСЬ, ЧТО USER ИМПОРТИРОВАН
-
+from .models import Order, Item, Profile, CompanySettings, TelegramSettings, Product
+from django.contrib.auth.models import User
 from django.db.models import Count
 from rest_framework.response import Response
 from datetime import date, timedelta
-
-# Все импорты сериализаторов
-from .serializers import (OrderSerializer, ItemSerializer, 
-                          ProductSerializer, UserSimpleSerializer) # 👈 3. ДОБАВЛЕН UserSimpleSerializer
-
-# Все импорты форм
-from .forms import (UserUpdateForm, ProfileUpdateForm, 
-                    AdminUserCreationForm, AdminUserUpdateForm, 
-                    NotificationSettingsForm, CompanySettingsForm,
+from .serializers import OrderSerializer, ItemSerializer, ProductSerializer, UserSimpleSerializer
+from .forms import (UserUpdateForm, ProfileUpdateForm, AdminUserCreationForm, 
+                    AdminUserUpdateForm, NotificationSettingsForm, CompanySettingsForm,
                     TelegramSettingsForm, ProductForm)
-
-# Другие импорты
 from .telegram_bot import send_telegram_notification
 from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth import update_session_auth_hash
-from django.contrib import messages 
+from django.contrib.auth import update_session_auth_hash, logout
+from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import get_object_or_404
 
-
-# --- 👇 ИЗМЕНЕНИЕ ЗДЕСЬ (ШАГ 2 из плана) ---
 @login_required
 def index(request):
-    """
-    Отображает главный дашборд (SPA).
-    Больше не передает 'all_users' в контекст.
-    """
-    # ❗️ 'all_users' отсюда удалены.
-    context = {} # Контекст теперь пустой
+    context = {}
     return render(request, 'index.html', context)
-# --- 👆 КОНЕЦ ИЗМЕНЕНИЯ ---
+
+# --- View для выхода из системы ---
+def logout_view(request):
+    """
+    Обрабатывает выход пользователя из системы.
+    """
+    logout(request)
+    messages.success(request, 'Вы успешно вышли из системы.')
+    return redirect('index')
 
 # --- Наши API ViewSets ---
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().order_by('-created_at')
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated] # (Рекомендую добавить)
+    permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         order = serializer.save()
@@ -62,32 +51,20 @@ class OrderViewSet(viewsets.ModelViewSet):
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
-    permission_classes = [permissions.IsAuthenticated] # (Рекомендую добавить)
+    permission_classes = [permissions.IsAuthenticated]
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [permissions.IsAuthenticated] # (Рекомендую добавить)
-    pagination_class = None 
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
 
-# --- 👇 НОВЫЙ VIEWSET (ШАГ 1 из плана) ---
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    API, который отдает список всех активных пользователей.
-    Только для чтения (ReadOnly).
-    """
     queryset = User.objects.filter(is_active=True).order_by('first_name')
     serializer_class = UserSimpleSerializer
-    permission_classes = [permissions.IsAuthenticated] # Только для вошедших
-    pagination_class = None # Отключаем пагинацию, нам нужен полный список
-# --- 👆 КОНЕЦ НОВОГО VIEWSET ---
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
 
-
-# --- (Все остальные views: profile_view, settings_page_view, 
-#      user_list_view, product_list_view и т.д. остаются без изменений) ---
-# ... (весь остальной код в views.py) ...
-# (Я не буду повторять все остальные функции, они остаются такими же, как 
-# в файле 'views.py', который вы загружали ранее)
 @login_required
 def profile_view(request):
     try:
@@ -98,9 +75,7 @@ def profile_view(request):
     if request.method == 'POST':
         if 'save_profile' in request.POST:
             user_form = UserUpdateForm(request.POST, instance=request.user)
-            profile_form = ProfileUpdateForm(request.POST, 
-                                             request.FILES, 
-                                             instance=profile)
+            profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
             
             if user_form.is_valid() and profile_form.is_valid():
                 user_form.save()
@@ -115,7 +90,7 @@ def profile_view(request):
             
             if password_form.is_valid():
                 user = password_form.save()
-                update_session_auth_hash(request, user) 
+                update_session_auth_hash(request, user)
                 messages.success(request, 'Ваш пароль успешно изменен!')
                 return redirect('profile_page')
             else:
@@ -143,7 +118,7 @@ def settings_page_view(request):
 def is_superuser(user):
     return user.is_authenticated and user.is_superuser
 
-@user_passes_test(is_superuser) 
+@user_passes_test(is_superuser)
 def user_list_view(request):
     users = User.objects.all().order_by('username')
     context = {
@@ -151,7 +126,7 @@ def user_list_view(request):
     }
     return render(request, 'settings/user_list.html', context)
 
-@user_passes_test(is_superuser) 
+@user_passes_test(is_superuser)
 def user_create_view(request):
     if request.method == 'POST':
         form = AdminUserCreationForm(request.POST)
@@ -168,7 +143,7 @@ def user_create_view(request):
     }
     return render(request, 'settings/user_form.html', context)
 
-@user_passes_test(is_superuser) 
+@user_passes_test(is_superuser)
 def user_update_view(request, pk):
     user = get_object_or_404(User, pk=pk)
     
@@ -187,7 +162,7 @@ def user_update_view(request, pk):
     }
     return render(request, 'settings/user_form.html', context)
 
-@user_passes_test(is_superuser) 
+@user_passes_test(is_superuser)
 def user_delete_view(request, pk):
     user = get_object_or_404(User, pk=pk)
     
@@ -227,9 +202,9 @@ def notification_settings_view(request):
     }
     return render(request, 'settings/notification_settings.html', context)
 
-@user_passes_test(is_superuser) 
+@user_passes_test(is_superuser)
 def company_settings_view(request):
-    settings_obj = CompanySettings.load() 
+    settings_obj = CompanySettings.load()
 
     if request.method == 'POST':
         form = CompanySettingsForm(request.POST, request.FILES, instance=settings_obj)
@@ -245,7 +220,7 @@ def company_settings_view(request):
     }
     return render(request, 'settings/company_settings.html', context)
 
-@user_passes_test(is_superuser) 
+@user_passes_test(is_superuser)
 def settings_integrations_view(request):
     settings_obj = TelegramSettings.load()
 
@@ -263,7 +238,7 @@ def settings_integrations_view(request):
     }
     return render(request, 'settings/integrations.html', context)
 
-@login_required 
+@login_required
 def product_list_view(request):
     products = Product.objects.all()
     context = {
@@ -271,7 +246,7 @@ def product_list_view(request):
     }
     return render(request, 'settings/product_list.html', context)
 
-@login_required 
+@login_required
 def product_create_view(request):
     if request.method == 'POST':
         form = ProductForm(request.POST)
@@ -286,9 +261,9 @@ def product_create_view(request):
         'form': form,
         'form_title': 'Создать новый товар'
     }
-    return render(request, 'settings/user_form.html', context) 
+    return render(request, 'settings/user_form.html', context)
 
-@login_required 
+@login_required
 def product_update_view(request, pk):
     product = get_object_or_404(Product, pk=pk)
     
@@ -305,9 +280,9 @@ def product_update_view(request, pk):
         'form': form,
         'form_title': f'Редактировать: {product.name}'
     }
-    return render(request, 'settings/user_form.html', context) 
+    return render(request, 'settings/user_form.html', context)
 
-@login_required 
+@login_required
 def product_delete_view(request, pk):
     product = get_object_or_404(Product, pk=pk)
     
@@ -318,30 +293,22 @@ def product_delete_view(request, pk):
         return redirect('product_list')
     
     context = {
-        'product_to_delete': product 
+        'product_to_delete': product
     }
     return render(request, 'settings/product_confirm_delete.html', context)
 
 @login_required
 def statistics_page(request):
-    # Пока просто отображаем шаблон.
-    # Позже сюда можно будет добавить передачу данных.
     return render(request, 'statistics.html')
 
 @api_view(['GET', 'POST'])
 def order_list_create(request):
-    """
-    GET: Получить список всех заказов.
-    POST: Создать новый заказ.
-    """
     if request.method == 'GET':
         orders = Order.objects.all().order_by('-created_at')
-        # 👇 Используем ваш OrderSerializer
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
     elif request.method == 'POST':
-        # 👇 Используем ваш OrderSerializer
         serializer = OrderSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -350,11 +317,6 @@ def order_list_create(request):
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def order_detail(request, pk):
-    """
-    GET: Получить один заказ.
-    PUT: Обновить один заказ.
-    DELETE: Удалить один заказ.
-    """
     try:
         order = Order.objects.get(pk=pk)
     except Order.DoesNotExist:
@@ -365,7 +327,6 @@ def order_detail(request, pk):
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        # 👇 Используем ваш OrderSerializer для обновления
         serializer = OrderSerializer(order, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -376,101 +337,71 @@ def order_detail(request, pk):
         order.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-# --- API для каталогов (нужны для модального окна) ---
-
 @api_view(['GET'])
 def product_catalog(request):
-    """ API-endpoint для списка продуктов в модальном окне """
     products = Product.objects.all()
-    # 👇 Используем ваш ProductSerializer
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
 def user_catalog(request):
-    """ API-endpoint для списка пользователей в модальном окне """
     users = User.objects.filter(is_active=True)
-    # 👇 Используем ваш UserSimpleSerializer
     serializer = UserSimpleSerializer(users, many=True)
     return Response(serializer.data)
 
-
 @api_view(['GET'])
 def statistics_data_view(request):
-    """
-    API-endpoint, который отдает все данные для
-    страницы "Статистика".
-    """
-    
-    # --- 1. Считаем KPI ---
     total_orders = Order.objects.count()
     pending_orders = Order.objects.filter(status='in-progress').count()
     
-    # Считаем "Создано сегодня" (вместо "Готово сегодня")
     today = date.today()
     created_today = Order.objects.filter(created_at__date=today).count()
     
-    # Ищем самый популярный товар
     top_product_query = Item.objects.values('name') \
                             .annotate(name_count=Count('name')) \
                             .order_by('-name_count') \
                             .first()
     top_product_name = top_product_query['name'] if top_product_query else "Нет"
 
-    # --- 2. Данные для Pie Chart (Статусы) ---
     status_counts_query = Order.objects.values('status') \
                                  .annotate(count=Count('status')) \
                                  .order_by('status')
     
-    # Форматируем для Chart.js
     status_data = {
         'labels': [item['status'] for item in status_counts_query],
         'counts': [item['count'] for item in status_counts_query],
     }
 
-    # --- 3. Данные для Line Chart (Активность за 7 дней) ---
-    seven_days_ago = today - timedelta(days=6) # 6 дней назад + сегодня = 7 дней
+    seven_days_ago = today - timedelta(days=6)
     
-    # Группируем заказы по дате создания
     activity_query = Order.objects.filter(created_at__date__gte=seven_days_ago) \
                             .values('created_at__date') \
                             .annotate(count=Count('id')) \
                             .order_by('created_at__date')
     
-    # Создаем словарь "дата:_количество" для всех дней, даже с 0 заказами
     activity_data_dict = { (today - timedelta(days=i)): 0 for i in range(7) }
     for item in activity_query:
         activity_data_dict[item['created_at__date']] = item['count']
         
-    # Сортируем и форматируем для Chart.js
     sorted_activity = sorted(activity_data_dict.items())
     activity_data = {
         'labels': [day.strftime('%d.%m') for day, count in sorted_activity],
         'counts': [count for day, count in sorted_activity],
     }
 
-    # --- 4. Собираем финальный JSON-ответ ---
     data = {
-        # KPI
         'total_orders': total_orders,
         'pending_orders': pending_orders,
         'created_today': created_today,
         'top_product': top_product_name,
         
-        # Chart data
         'status_counts': status_data,
         'activity_last_7_days': activity_data,
     }
     
     return Response(data)
 
-
 @login_required
 def archive_page_view(request):
-    """
-    Отображает страницу "Архив заказов".
-    (Пока просто отображает шаблон, 
-    позже мы добавим сюда API для загрузки данных)
-    """
     context = {}
     return render(request, 'archive.html', context)

@@ -4,9 +4,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils import timezone # 👈 Убедитесь, что этот импорт есть
+from django.utils import timezone
 
-# === Модель Заказа (ОБНОВЛЕНА) ===
+# === Модель Заказа ===
 class Order(models.Model):
     STATUS_CHOICES = [
         ('not-ready', 'Не готов'),
@@ -27,7 +27,6 @@ class Order(models.Model):
     def __str__(self):
         return f"Заказ №{self.id} от {self.client}"
 
-    # (Логика update_status)
     def update_status(self):
         items = self.items.all()
         if not items.exists():
@@ -42,7 +41,7 @@ class Order(models.Model):
             self.status = 'not-ready'
         self.save()
 
-# === Модель Товара в Заказе (ОБНОВЛЕНА) ===
+# === Модель Товара в Заказе ===
 class Item(models.Model):
     STATUS_CHOICES = [
         ('not-ready', 'Не готов'),
@@ -57,7 +56,7 @@ class Item(models.Model):
         verbose_name="Заказ"
     )
     comment = models.TextField(
-        blank=True,  # Поле необязательное
+        blank=True,
         verbose_name="Комментарий к товару"
     )
     name = models.CharField(max_length=255, verbose_name="Название товара")
@@ -76,17 +75,15 @@ class Item(models.Model):
         verbose_name="Статус товара"
     )
 
-    # --- 👇👇👇 ВОТ ИСПРАВЛЕНИЕ 👇👇👇 ---
     responsible_user = models.ForeignKey(
         User, 
-        on_delete=models.SET_NULL, # Если удалим юзера, товар останется
+        on_delete=models.SET_NULL,
         null=True, 
         blank=True,
-        related_name="items", # У пользователя (User) будут .items
+        related_name="items",
         verbose_name="Ответственный"
     )
     
-    # Эти поля теперь НАХОДЯТСЯ СНАРУЖИ (как и должны)
     ready_at = models.DateTimeField(
         null=True, 
         blank=True, 
@@ -96,12 +93,10 @@ class Item(models.Model):
         default=False, 
         verbose_name="В архиве"
     )
-    # --- 👆👆👆 КОНЕЦ ИСПРАВЛЕНИЯ 👆👆👆 ---
 
     def __str__(self):
         return f"{self.name} ({self.quantity} шт.)"
 
-    # --- 👇 ПОЛНОСТЬЮ ЗАМЕНИТЕ ЭТУ ФУНКЦИЮ 👇 ---
     def save(self, *args, **kwargs):
         # Если статус МЕНЯЕТСЯ на "Готово" и даты еще нет
         if self.status == 'ready' and self.ready_at is None:
@@ -111,15 +106,13 @@ class Item(models.Model):
         elif self.status != 'ready':
             self.ready_at = None
             
-        super().save(*args, **kwargs) # Сначала сохраняем Item
+        super().save(*args, **kwargs)
         
-        # Затем обновляем Order (важно, чтобы было после super().save)
+        # Затем обновляем Order
         if hasattr(self, 'order') and self.order:
             self.order.update_status()
-    # --- 👆 КОНЕЦ ЗАМЕНЫ 👆 ---
 
-
-# === Модель Профиля (без изменений) ===
+# === Модель Профиля ===
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(
@@ -143,7 +136,7 @@ class Profile(models.Model):
     def __str__(self):
         return f'Профиль: {self.user.username}'
 
-# === Сигналы для Профиля (без изменений) ===
+# === Сигналы для Профиля ===
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -154,10 +147,9 @@ def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         instance.profile.save()
     else:
-        # Этого не должно случиться, но на всякий случай
         Profile.objects.create(user=instance)
 
-# === Модель Настроек Компании (без изменений) ===
+# === Модель Настроек Компании ===
 class CompanySettings(models.Model):
     company_name = models.CharField(
         max_length=255, 
@@ -197,7 +189,7 @@ class CompanySettings(models.Model):
         verbose_name = "Настройки компании"
         verbose_name_plural = "Настройки компании"
 
-# === Модель Настроек Telegram (без изменений) ===
+# === Модель Настроек Telegram ===
 class TelegramSettings(models.Model):
     bot_token = models.CharField(
         max_length=255, 
@@ -226,7 +218,7 @@ class TelegramSettings(models.Model):
         verbose_name = "Настройки Telegram"
         verbose_name_plural = "Настройки Telegram"
 
-# === Модель Ассортимента (без изменений) ===
+# === Модель Ассортимента ===
 class Product(models.Model):
     CATEGORY_CHOICES = [
         ('polygraphy', 'Полиграфия'),

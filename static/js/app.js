@@ -1,14 +1,17 @@
-// static/js/app.js (ПОЛНЫЙ И ИСПРАВЛЕННЫЙ КОД v5)
+// static/js/app.js (ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД v9 - с "карточками" и "создателем")
 
 // --- Глобальные переменные ---
 let orders = []; 
 let productCatalog = []; 
 let userCatalog = [];
 let currentEditingOrderId = null;
-let soundEnabled = true;
-let popupEnabled = true;
-let dayBeforeEnabled = true;
+
+// Настройки теперь загружаются из 'base.html' (window.USER_SETTINGS)
+let soundEnabled = window.USER_SETTINGS.soundEnabled;
+let popupEnabled = window.USER_SETTINGS.popupEnabled;
+let dayBeforeEnabled = window.USER_SETTINGS.dayBeforeEnabled;
 let notificationShownToday = new Set();
+
 
 // --- Получение CSRF-токена ---
 function getCookie(name) {
@@ -37,7 +40,7 @@ const itemsFormContainer = document.getElementById('itemsFormContainer');
 const notification = document.getElementById('notification');
 const notificationTitle = document.getElementById('notificationTitle');
 const notificationMessage = document.getElementById('notificationMessage');
-const notificationCloseBtn = document.getElementById('notificationCloseBtn'); 
+const notificationCloseBtn = document.getElementById('notificationCloseBtn');
 const itemsCount = document.getElementById('itemsCount');
 const readyCount = document.getElementById('readyCount');
 const addOrderBtn = document.getElementById('addOrderBtn');
@@ -45,7 +48,7 @@ const closeModalBtn = document.getElementById('closeModalBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const saveBtn = document.getElementById('saveBtn');
 const addItemBtn = document.getElementById('addItemBtn');
-const syncBtn = document.getElementById('syncBtn'); 
+const syncBtn = document.getElementById('syncBtn');
 const showReadyBtn = document.getElementById('showReadyBtn');
 const showNotReadyBtn = document.getElementById('showNotReadyBtn');
 const resetFiltersBtn = document.getElementById('resetFiltersBtn');
@@ -57,8 +60,113 @@ const profileDropdownMenu = document.getElementById('profileDropdownMenu');
 
 // --- Инициализация приложения ---
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Запускаем инициализацию (загрузку данных)
     initApp();
-});
+
+    // --- НАЧАЛО: Все Event Listeners ---
+    // (Они должны быть здесь, чтобы сработать после загрузки DOM)
+
+    if (addOrderBtn) addOrderBtn.addEventListener('click', () => openOrderModal());
+    if (closeModalBtn) closeModalBtn.addEventListener('click', () => closeOrderModal());
+    if (cancelBtn) cancelBtn.addEventListener('click', () => closeOrderModal());
+    if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); saveOrder(); });
+    if (orderForm) orderForm.addEventListener('submit', (e) => { e.preventDefault(); saveOrder(); });
+    if (addItemBtn) addItemBtn.addEventListener('click', () => addItemRow());
+    if (syncBtn) syncBtn.addEventListener('click', () => {
+        initApp();
+        showNotification('Синхронизация', 'Данные обновлены', 'success');
+    });
+    if (showReadyBtn) showReadyBtn.addEventListener('click', () => {
+        statusFilter.value = 'ready';
+        renderOrders();
+        updateQuickFilterButtons('ready');
+    });
+    if (showNotReadyBtn) showNotReadyBtn.addEventListener('click', () => {
+        statusFilter.value = 'not-ready';
+        renderOrders();
+        updateQuickFilterButtons('not-ready');
+    });
+    if (resetFiltersBtn) resetFiltersBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        statusFilter.value = 'all';
+        urgencyFilter.value = 'all';
+        renderOrders();
+        updateQuickFilterButtons('all');
+    });
+    if (searchInput) searchInput.addEventListener('input', renderOrders);
+    if (statusFilter) statusFilter.addEventListener('change', () => {
+        renderOrders();
+        updateQuickFilterButtons('');
+    });
+    if (urgencyFilter) urgencyFilter.addEventListener('change', renderOrders);
+    if (avatarBtn) avatarBtn.addEventListener('click', () => {
+        profileDropdownMenu.style.display = profileDropdownMenu.style.display === 'block' ? 'none' : 'block';
+    });
+    if (notificationCloseBtn) notificationCloseBtn.addEventListener('click', closeNotification);
+    window.addEventListener('click', (e) => {
+        
+        if (profileDropdownMenu && !e.target.closest('#avatarBtn') && !e.target.closest('#profileDropdownMenu')) {
+            profileDropdownMenu.style.display = 'none';
+        }
+    });
+
+
+    // --- НАЧАЛО: Код для "Гамбургер-меню" (Мобильная версия) ---
+    const menuToggleBtn = document.getElementById("menuToggleBtn");
+    const sidebar = document.querySelector(".sidebar");
+    const pageContainer = document.querySelector(".page-container");
+
+    if (menuToggleBtn && sidebar) {
+        
+        menuToggleBtn.addEventListener("click", (e) => {
+            e.stopPropagation(); 
+            sidebar.classList.toggle("show");
+        });
+
+        if (pageContainer) {
+            pageContainer.addEventListener("click", () => {
+                if (sidebar.classList.contains("show")) {
+                    sidebar.classList.remove("show");
+                }
+            });
+        }
+
+        sidebar.addEventListener("click", (e) => {
+            if (e.target.tagName === 'A' || e.target.closest('A')) {
+                 sidebar.classList.remove("show");
+            }
+        });
+    }
+    // --- КОНЕЦ: Код для "Гамбургер-меню" ---
+
+
+    // --- Код для складного сайдбара ---
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const body = document.body; // Будем вешать класс на <body>
+
+    if (sidebarToggleBtn) {
+        
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            body.classList.add('sidebar-collapsed');
+        }
+
+        sidebarToggleBtn.addEventListener('click', () => {
+            body.classList.toggle('sidebar-collapsed');
+            
+            if (body.classList.contains('sidebar-collapsed')) {
+                localStorage.setItem('sidebarCollapsed', 'true');
+            } else {
+                localStorage.setItem('sidebarCollapsed', 'false');
+            }
+        });
+    }
+    // --- КОНЕЦ Кода для складного сайдбара ---
+
+
+    // Периодическая проверка срочных заказов
+    setInterval(checkUrgentOrders, 300000); // Каждые 5 минут
+
+}); // <-- Это закрывающая скобка для 'DOMContentLoaded'
 
 async function initApp() {
     try {
@@ -89,60 +197,8 @@ async function initApp() {
         input.setAttribute('min', today);
     });
     resetNotificationTracking();
-    if (localStorage.getItem('soundEnabled') !== null) {
-        soundEnabled = localStorage.getItem('soundEnabled') === 'true';
-    }
-    if (localStorage.getItem('popupEnabled') !== null) {
-        popupEnabled = localStorage.getItem('popupEnabled') === 'true';
-    }
-    if (localStorage.getItem('dayBeforeEnabled') !== null) {
-        dayBeforeEnabled = localStorage.getItem('dayBeforeEnabled') === 'true';
-    }
 }
 
-// --- Event Listeners ---
-if (addOrderBtn) addOrderBtn.addEventListener('click', () => openOrderModal());
-if (closeModalBtn) closeModalBtn.addEventListener('click', () => closeOrderModal());
-if (cancelBtn) cancelBtn.addEventListener('click', () => closeOrderModal());
-if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); saveOrder(); });
-if (orderForm) orderForm.addEventListener('submit', (e) => { e.preventDefault(); saveOrder(); });
-if (addItemBtn) addItemBtn.addEventListener('click', () => addItemRow());
-if (syncBtn) syncBtn.addEventListener('click', () => {
-    initApp();
-    showNotification('Синхронизация', 'Данные обновлены', 'success');
-});
-if (showReadyBtn) showReadyBtn.addEventListener('click', () => {
-    statusFilter.value = 'ready';
-    renderOrders();
-    updateQuickFilterButtons('ready');
-});
-if (showNotReadyBtn) showNotReadyBtn.addEventListener('click', () => {
-    statusFilter.value = 'not-ready';
-    renderOrders();
-    updateQuickFilterButtons('not-ready');
-});
-if (resetFiltersBtn) resetFiltersBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    statusFilter.value = 'all';
-    urgencyFilter.value = 'all';
-    renderOrders();
-    updateQuickFilterButtons('all');
-});
-if (searchInput) searchInput.addEventListener('input', renderOrders);
-if (statusFilter) statusFilter.addEventListener('change', () => {
-    renderOrders();
-    updateQuickFilterButtons('');
-});
-if (urgencyFilter) urgencyFilter.addEventListener('change', renderOrders);
-if (avatarBtn) avatarBtn.addEventListener('click', () => {
-    profileDropdownMenu.style.display = profileDropdownMenu.style.display === 'block' ? 'none' : 'block';
-});
-if (notificationCloseBtn) notificationCloseBtn.addEventListener('click', closeNotification);
-window.addEventListener('click', (e) => {
-    if (profileDropdownMenu && !e.target.matches('#avatarBtn') && !e.target.closest('#profileDropdownMenu')) {
-        profileDropdownMenu.style.display = 'none';
-    }
-});
 
 // --- Основные функции ---
 
@@ -183,13 +239,23 @@ function renderOrders() {
                 const row = document.createElement('tr');
                 
                 // --- 3. ЛОГИКА СТИЛЕЙ ---
-                const isLastItem = (index === visibleItems.length - 1);
+                
+                // 👇👇👇 ИЗМЕНЕНИЕ №3: Добавляем классы для "карточек" 👇👇👇
+                if (index === 0) {
+                    row.classList.add('order-row-start');
+                }
+                if (index === visibleItems.length - 1) {
+                    row.classList.add('order-row-end');
+                }
+                // 👆👆👆 КОНЕЦ ИЗМЕНЕНИЯ №3 👆👆👆
+
+
                 const daysUntilDeadline = getDaysUntilDeadline(item.deadline);
                 let urgencyClass = '';
                 if (daysUntilDeadline === 0) urgencyClass = 'item-very-urgent'; 
                 else if (daysUntilDeadline === 1) urgencyClass = 'item-urgent'; 
                 
-                const borderClass = isLastItem ? '' : 'item-row-border';
+                const borderClass = (index === visibleItems.length - 1) ? '' : 'item-row-border';
                 const cellClasses = `${urgencyClass} ${borderClass}`;
                 
                 const responsible = item.responsible_user 
@@ -219,7 +285,7 @@ function renderOrders() {
                     </td>
                     <td class="${cellClasses}">
                         <div class="responsible-dropdown">
-                            <button class="responsible-current" 
+                            <button class_ ="responsible-current" 
                                     data-order-id="${order.id}" 
                                     data-item-name="${item.name}" 
                                     data-item-quantity="${item.quantity}">
@@ -346,11 +412,12 @@ function openOrderModal(orderId = null) {
         
         itemsFormContainer.innerHTML = '';
         
+        // CURRENT_USER_ID приходит из <script> в index.html
         const currentUserId = (typeof CURRENT_USER_ID !== 'undefined') ? CURRENT_USER_ID : null;
         
         const firstItem = createItemFormCard(
             '', 1, 'not-ready', today, 1,
-            currentUserId,
+            currentUserId, // Автоматически ставим создателя
             '' 
         );
         itemsFormContainer.appendChild(firstItem);
@@ -373,19 +440,25 @@ function addItemRow() {
     
     const itemCard = createItemFormCard(
         '', 1, 'not-ready', today, itemCount,
-        currentUserId,
+        currentUserId, // Автоматически ставим создателя
         '' 
     );
     itemsFormContainer.appendChild(itemCard);
     updateOrderSummary();
 }
 
+// 
+// 👇👇👇 ГЛАВНЫЕ ИЗМЕНЕНИЯ - в `createItemFormCard` 👇👇👇
+//
 function createItemFormCard(name, quantity, status, deadline, itemNumber, responsibleUserId, comment = '') {
     const template = document.getElementById('itemFormTemplate');
     const itemCard = template.content.cloneNode(true).firstElementChild;
     
-    const badge = itemCard.querySelector('.item-number-badge');
-    const productSelect = itemCard.querySelector('.product-name-select');
+    // Находим все нужные элементы внутри карточки
+    const badge = itemCard.querySelector('.item-number');
+    const productInput = itemCard.querySelector('.product-name-input'); // 👈 ИЗМЕНЕНО
+    const productTypeBtn = itemCard.querySelector('.product-type-btn'); // 👈 НОВЫЙ
+    const productSuggestions = itemCard.querySelector('.product-suggestions'); // 👈 НОВЫЙ
     const quantityInput = itemCard.querySelector('.item-quantity');
     const deadlineInput = itemCard.querySelector('.item-deadline-input');
     const statusSelect = itemCard.querySelector('.item-status-select');
@@ -393,20 +466,44 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
     const itemResponsibleSelect = itemCard.querySelector('.item-responsible-user');
     const commentInput = itemCard.querySelector('.item-comment'); 
 
-    badge.innerHTML = `<i class="fas fa-cube"></i> Товар ${itemNumber}`;
+    badge.textContent = itemNumber;
     
-    // Заполняем продукты
+    // ---
+    // 👇👇👇 ИЗМЕНЕНИЕ №1: Логика для "Тип продукции" (как в index_first.html) 👇👇👇
+    // ---
+    productInput.value = name; // Заполняем инпут
+
+    // Заполняем список подсказок из нашего API-каталога
     productCatalog.forEach(product => {
-        const option = document.createElement('option');
-        option.value = product.name;
-        option.textContent = product.name;
-        if (product.name === name) {
-            option.selected = true;
-        }
-        productSelect.appendChild(option);
+        const suggestion = document.createElement('div');
+        suggestion.className = 'product-suggestion';
+        suggestion.innerHTML = `<i class="${product.icon || 'fas fa-box'}"></i><span>${product.name}</span>`;
+        
+        suggestion.addEventListener('click', () => {
+            productInput.value = product.name;
+            productSuggestions.style.display = 'none';
+            productTypeBtn.innerHTML = '<i class="fas fa-list"></i> Выбрать из списка';
+        });
+        productSuggestions.appendChild(suggestion);
     });
-    
-    // Заполняем пользователей
+
+    // Кнопка "Выбрать из списка"
+    productTypeBtn.addEventListener('click', () => {
+        if (productSuggestions.style.display === 'none') {
+            productSuggestions.style.display = 'grid';
+            productTypeBtn.innerHTML = '<i class="fas fa-times"></i> Скрыть список';
+        } else {
+            productSuggestions.style.display = 'none';
+            productTypeBtn.innerHTML = '<i class="fas fa-list"></i> Выбрать из списка';
+        }
+    });
+    // --- 👆👆👆 Конец ИЗМЕНЕНИЯ №1 👆👆👆 ---
+
+
+    // ---
+    // 👇👇👇 ИЗМЕНЕНИЕ №2: Логика для "Создатель" (Автоматически и заблокировано) 👇👇👇
+    // ---
+    itemResponsibleSelect.innerHTML = ''; // Очищаем "-- Загрузка... --"
     userCatalog.forEach(user => {
         const option = document.createElement('option');
         option.value = user.id;
@@ -416,11 +513,18 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
             : user.username;
         option.textContent = displayName;
         
+        // Выбираем текущего пользователя (из CURRENT_USER_ID)
         if (user.id === responsibleUserId) {
             option.selected = true;
         }
         itemResponsibleSelect.appendChild(option);
     });
+    
+    // Устанавливаем и БЛОКИРУЕМ поле
+    itemResponsibleSelect.value = responsibleUserId;
+    itemResponsibleSelect.disabled = true; 
+    // --- 👆👆👆 Конец ИЗМЕНЕНИЯ №2 👆👆👆 ---
+
     
     // Заполняем остальные поля
     quantityInput.value = quantity;
@@ -453,8 +557,8 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
 function updateItemNumbers() {
     const itemCards = itemsFormContainer.querySelectorAll('.item-form-card');
     itemCards.forEach((card, index) => {
-        const badge = card.querySelector('.item-number-badge');
-        badge.innerHTML = `<i class="fas fa-cube"></i> Товар ${index + 1}`;
+        const badge = card.querySelector('.item-number');
+        badge.textContent = index + 1;
     });
 }
 
@@ -471,7 +575,7 @@ function updateOrderSummary() {
     });
     
     itemsCount.textContent = totalItems;
-    readyCount.textContent = totalItems;
+    readyCount.textContent = readyItems; // Исправлено (было totalItems)
 }
 
 async function saveOrder() {
@@ -487,11 +591,11 @@ async function saveOrder() {
     
     let allFieldsValid = true;
     itemCards.forEach(card => {
-        const productName = card.querySelector('.product-name-select').value;
+        const productName = card.querySelector('.product-name-input').value; // 👈 ИЗМЕНЕНО
         const quantity = parseInt(card.querySelector('.item-quantity').value);
         const status = card.querySelector('.item-status-select').value;
         const deadline = card.querySelector('.item-deadline-input').value;
-        const responsibleUserId = card.querySelector('.item-responsible-user').value;
+        const responsibleUserId = card.querySelector('.item-responsible-user').value; // 👈 Он 'disabled', но мы все равно берем 'value'
         const comment = card.querySelector('.item-comment').value; 
         
         if (!productName || !deadline) {
@@ -520,7 +624,7 @@ async function saveOrder() {
     
     const orderData = {
         client: clientName,
-        items_write: items // 👈 ИЗМЕНЕНИЕ ИЗ ПРОШЛОГО ШАГА
+        items_write: items
     };
 
     try {
@@ -555,6 +659,7 @@ async function saveOrder() {
             showNotification('Успешно', 'Заказ обновлен', 'success');
         } else {
             orders.push(savedOrder);
+            orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Сортируем
             showNotification('Успешно', 'Заказ добавлен', 'success');
         }
         
@@ -576,18 +681,13 @@ async function deleteOrder(orderId) {
     if (confirm('Вы уверены, что хотите удалить этот заказ?')) {
         try {
             const response = await fetch(`/api/orders/${orderId}/`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({
-                client: order.client, // 👈 ВОТ ИСПРАВЛЕНИЕ
-                items_write: itemsForApi
-            })
-        });
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            });
 
-            if (!response.ok) {
+            if (!response.ok && response.status !== 204) {
                 throw new Error('Ошибка удаления на сервере');
             }
 
@@ -606,6 +706,7 @@ async function toggleItemStatus(orderId, itemName, itemQuantity) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
+    // Находим правильный товар (по имени и кол-ву, как раньше)
     const item = order.items.find(i => i.name === itemName && i.quantity === itemQuantity);
     if (!item) return;
     
@@ -632,7 +733,6 @@ async function toggleItemStatus(orderId, itemName, itemQuantity) {
             };
         });
     
-        // --- 👇👇👇 ВОТ ИСПРАВЛЕННЫЙ URL (v5) 👇👇👇 ---
         const response = await fetch(`/api/orders/${orderId}/`, {
             method: 'PUT',
             headers: {
@@ -640,11 +740,10 @@ async function toggleItemStatus(orderId, itemName, itemQuantity) {
                 'X-CSRFToken': csrftoken
             },
             body: JSON.stringify({
-                client: order.client, // 👈 ВОТ ИСПРАВЛЕНИЕ
+                client: order.client,
                 items_write: itemsForApi
             })
         });
-        // --- 👆👆👆 КОНЕЦ ИСПРАВЛЕНИЯ 👆👆👆 ---
 
         if (!response.ok) {
             throw new Error('Ошибка обновления статуса');
@@ -662,8 +761,6 @@ async function toggleItemStatus(orderId, itemName, itemQuantity) {
         showNotification('Ошибка', 'Не удалось обновить статус на сервере', 'error');
     }
 }
-
-// --- (НОВЫЕ ФУНКЦИИ ДЛЯ ОТВЕТСТВЕННЫХ) ---
 
 function showResponsibleDropdown(buttonElement, orderId, itemName, itemQuantity) {
     document.querySelectorAll('.responsible-menu').forEach(menu => menu.remove());
@@ -724,7 +821,7 @@ async function updateResponsibleUser(orderId, itemName, itemQuantity, newUserId)
         last_name: newUser.last_name
     };
     
-    renderOrders();
+    renderOrders(); // Сначала обновляем локально
 
     try {
         const itemsForApi = order.items.map(i => ({
@@ -743,7 +840,7 @@ async function updateResponsibleUser(orderId, itemName, itemQuantity, newUserId)
                 'X-CSRFToken': csrftoken
             },
             body: JSON.stringify({
-                client: order.client, // 👈 ВОТ ИСПРАВЛЕНИЕ
+                client: order.client,
                 items_write: itemsForApi
             })
         });
@@ -755,7 +852,7 @@ async function updateResponsibleUser(orderId, itemName, itemQuantity, newUserId)
         if (orderIndex !== -1) {
             orders[orderIndex] = updatedOrderFromServer;
         }
-        renderOrders(); 
+        renderOrders(); // Повторно рендерим с данными с сервера
 
     } catch (error) {
         console.error(error);
@@ -806,6 +903,8 @@ function checkUrgentOrders() {
     
     orders.forEach(order => {
         order.items.forEach(item => {
+            if (item.status === 'ready') return; // Игнорируем готовые
+            
             const deadlineDate = new Date(item.deadline);
             deadlineDate.setHours(0, 0, 0, 0);
             
@@ -852,12 +951,12 @@ function showNotification(title, message, type = 'info') {
     notificationTitle.textContent = title;
     notificationMessage.textContent = message;
     notification.className = 'notification show ' + type;
-    const icon = notification.querySelector('.notification-icon');
+    const icon = notification.querySelector('.notification-icon i');
     if (icon) {
-        icon.className = type === 'success' ? 'fas fa-check-circle notification-icon' : 
-                       type === 'warning' ? 'fas fa-exclamation-triangle notification-icon' : 
-                       type === 'error' ? 'fas fa-times-circle notification-icon' : 
-                       'fas fa-info-circle notification-icon';
+        icon.className = type === 'success' ? 'fas fa-check-circle' : 
+                       type === 'warning' ? 'fas fa-exclamation-triangle' : 
+                       type === 'error' ? 'fas fa-times-circle' : 
+                       'fas fa-info-circle';
     }
 }
 
@@ -878,6 +977,3 @@ function playNotificationSound() {
         console.warn("Не удалось воспроизвести звук:", e);
     }
 }
-    
-// Периодическая проверка срочных заказов
-setInterval(checkUrgentOrders, 300000); // Каждые 5 минут

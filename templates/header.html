@@ -3,9 +3,13 @@
     <div class="header-content">
         
         <div class="header-actions-left">
+            
+            <button class="btn icon-btn" id="menuToggleBtn">
+                <i class="fas fa-bars"></i>
+            </button>
             <button class="btn" id="syncBtn">
                 <i class="fas fa-sync"></i>
-                Синхронизировать
+                <span class="btn-text">Синхронизировать</span>
             </button>
         </div>
 
@@ -16,21 +20,21 @@
             </button>
             
             <div class="profile-dropdown">
-                
                 <button class="btn avatar-btn" id="avatarBtn">
-                    <img src="{{ request.user.profile.avatar.url }}" class="header-avatar-img">
+                    {% if request.user.profile.avatar %}
+                        <img src="{{ request.user.profile.avatar.url }}" class="header-avatar-img" alt="Аватар">
+                    {% else %}
+                        <i class="fas fa-user"></i>
+                    {% endif %}
                 </button>
                 
-                <div class="dropdown-menu" id="profileDropdownMenu">
-                    
+                <div class="dropdown-menu" id="profileDropdownMenu" style="display: none;">
                     <a href="{% url 'profile_page' %}" class="dropdown-item">
                         <i class="fas fa-user-circle"></i>
-                        <span>Мой профил</span>
+                        <span>Мой профиль</span>
                     </a>
-                    
                     <div class="dropdown-divider"></div>
-                    
-                    <form action="/logout/" method="post" class="dropdown-item-form">
+                    <form action="{% url 'logout' %}" method="post" class="dropdown-item-form">
                         {% csrf_token %}
                         <button type="submit" class="dropdown-item logout-btn">
                             <i class="fas fa-sign-out-alt"></i>
@@ -39,8 +43,6 @@
                     </form>
                 </div>
             </div>
-            
         </div>
-        
     </div>
 </header>

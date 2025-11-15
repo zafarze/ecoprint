@@ -66,7 +66,7 @@
                             <th>Кол-во</th>
                             <th>Срок сдачи</th>
                             <th>Статус</th>
-                            <th>Ответственный</th>
+                            <th>Создатель</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
@@ -186,27 +186,27 @@
             <div class="product-type-section">
                 <div class="product-type-label">Тип продукции *</div>
                 <div class="product-input-group">
-                    <div class="custom-select" style="width: 100%;"> 
-                        <select class="product-name-select" required> 
-                            <option value="" disabled selected>-- Выберите товар --</option>
-                        </select>
-                    </div>
+                    <input type="text" class="product-name-input" placeholder="Введите название или выберите из списка" required>
+                    <button type="button" class="product-type-btn">
+                        <i class="fas fa-list"></i>
+                        Выбрать из списка
+                    </button>
                 </div>
+                <div class="product-suggestions" style="display: none;">
+                    </div>
             </div>
-
             <div class="item-form-grid-3">
                 <div class="form-group">
                     <label>Количество *</label>
                     <input type="number" class="item-quantity" placeholder="1" min="1" value="1" required>
                 </div>
                 <div class="form-group">
-                            <label>Ответственный</label>
-                            <div class="custom-select" style="width: 100%;">
-                                <select class="item-responsible-user">
-                                    <option value="" disabled selected>-- Выберите... --</option>
-                                </select>
-                            </div>
-                        </div>
+                    <label>Создатель</label>
+                    <div class="custom-select" style="width: 100%;">
+                        <select class="item-responsible-user" disabled> <option value="" disabled selected>-- Загрузка... --</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label>Срок сдачи *</label>
                     <input type="date" class="item-deadline-input" required>

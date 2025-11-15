@@ -1,3 +1,4 @@
+/* Полный файл D:\Projects\EcoPrint\staticfiles\css\main.css с исправлениями */
 :root {
     --primary-color: #0088cc;
     --primary-hover: #0077b3;
@@ -19,6 +20,7 @@
     --eco-blue: #0088cc;
     --gradient: linear-gradient(135deg, var(--eco-pink), var(--eco-blue));
     --gradient-hover: linear-gradient(135deg, #db2777, #0066aa);
+    --sidebar-width-collapsed: 80px;
 }
 
 * {
@@ -44,7 +46,7 @@ body {
 header {
     background: var(--gradient);
     color: white;
-    padding: 25px 0;
+    padding: 10px 0;
     box-shadow: var(--shadow-lg);
     position: sticky;
     top: 0;
@@ -58,7 +60,7 @@ header {
     align-items: center;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 10px;
 }
 
 .logo {
@@ -101,6 +103,14 @@ header {
     display: flex;
     gap: 15px;
 }
+
+/* * === НОВЫЙ СТИЛЬ ===
+ * Кнопка "Гамбургер" по умолчанию скрыта на десктопе 
+ */
+#menuToggleBtn {
+    display: none; 
+}
+
 
 .btn {
     background: rgba(255, 255, 255, 0.2);
@@ -297,14 +307,6 @@ th {
 
 tr:hover {
     background: var(--primary-light);
-}
-
-tr.urgent {
-    background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
-}
-
-tr.very-urgent {
-    background: linear-gradient(90deg, #fee2e2 0%, #fecaca 100%);
 }
 
 .status-badge {
@@ -1088,48 +1090,6 @@ input:checked + .toggle-slider:before {
     color: var(--text-color);
 }
 
-@media (max-width: 768px) {
-    .filter-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .filter-group {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .table-container {
-        overflow-x: auto;
-    }
-
-    table {
-        min-width: 700px;
-    }
-
-    .item-form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .product-suggestions {
-        grid-template-columns: 1fr;
-    }
-
-    .modal-content {
-        width: 95%;
-        max-height: 98vh;
-    }
-
-    .form-section {
-        padding: 20px;
-    }
-
-    .modal-footer {
-        flex-direction: column;
-        gap: 20px;
-    }
-}
-
 .logo-link {
     text-decoration: none;
     color: inherit; /* Наследует цвет (в нашем случае - белый) */
@@ -1172,8 +1132,8 @@ input:checked + .toggle-slider:before {
 
 /* Контейнер для аватара и меню */
 .profile-dropdown {
-    position: relative; /* Обязательно для позиционирования меню */
-    display: inline-block;
+    position: relative; 
+    display: flex; /* <-- Вот это изменение */
 }
 
 /* Стиль кнопки аватара (круглая) */
@@ -1301,7 +1261,9 @@ input:checked + .toggle-slider:before {
     border-right: 1px solid var(--border-color);
     box-shadow: var(--shadow-md);
     padding: 20px;
-    z-index: 110; /* Выше чем header */
+    z-index: 110; /* Выше чем header (100) */
+    /* === ДОБАВЛЕНО === */
+    transition: transform 0.3s ease-in-out; 
 }
 
 /* Логотип в сайдбаре */
@@ -1525,14 +1487,6 @@ header {
     color: var(--text-light);
 }
 
-/* Адаптация для мобильных */
-@media (max-width: 992px) {
-    .settings-grid {
-        /* 1 колонка на маленьких экранах */
-        grid-template-columns: 1fr;
-    }
-}
-
 /* Грид для 2 колонок в модальном окне (Клиент + Ответственный) */
 .form-grid-2 {
     display: grid;
@@ -1547,14 +1501,6 @@ header {
     grid-template-columns: 1fr 1fr 1fr 1fr; /* Стало (4 колонки) */
     gap: 20px;
     align-items: start;
-}
-
-/* Адаптация для мобильных */
-@media (max-width: 768px) {
-    .form-grid-2,
-    .item-form-grid-3 {
-        grid-template-columns: 1fr; /* 1 колонка на мобильных */
-    }
 }
 
 td[rowspan] {
@@ -1741,13 +1687,6 @@ td[rowspan] {
     text-align: center;
 }
 
-/* Адаптация для мобильных */
-@media (max-width: 992px) {
-    .chart-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 textarea.item-comment {
     width: 100%;
     min-height: 70px; /* Немного меньше */
@@ -1783,4 +1722,248 @@ textarea.item-comment:focus {
 #ordersTableBody td strong {
     font-weight: 500;
     color: var(--text-color);
+}
+
+/*
+ * ===================================================================
+ * ===                СТИЛИ ДЛЯ АДАПТАЦИИ (MOBILE)                 ===
+ * ===================================================================
+ */
+
+/* * --- Планшеты и Телефоны (до 992px) ---
+ */
+@media (max-width: 992px) {
+
+    /* === Адаптация Шапки (Header) === */
+    
+    /* 1. Уменьшаем высоту шапки */
+    header {
+        padding: 8px 0;
+    }
+
+    /* 2. Заставляем шапку НЕ переносить строки и даем отступы */
+    .header-content {
+        flex-wrap: nowrap;
+        padding: 0 10px;
+    }
+
+    /* 3. Левый блок кнопок: не переносить и уменьшить зазор */
+    .header-actions-left {
+        flex-wrap: nowrap;
+        gap: 10px; 
+    }
+
+    /* 4. Правый блок кнопок: уменьшить зазор */
+    .header-actions {
+        gap: 10px;
+    }
+
+    /* 5. Уменьшаем ВСЕ кнопки-иконки в шапке до 40px */
+    .header-actions .icon-btn,
+    .header-actions-left .icon-btn, 
+    .avatar-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px; /* Иконка внутри тоже чуть меньше */
+    }
+
+    /* 6. Показываем кнопку "Гамбургер" */
+    #menuToggleBtn {
+        display: inline-flex; 
+    }
+
+    /* 7. Скрываем текст у кнопки "Синхронизировать" */
+    #syncBtn .btn-text {
+        display: none;
+    }
+    
+    /* 8. Делаем саму кнопку #syncBtn квадратной (40px) */
+    #syncBtn {
+        width: 40px;  
+        height: 40px; 
+        padding: 0;
+        justify-content: center;
+    }
+
+    /* === Адаптация Макета (Sidebar + Content) === */
+    
+    .sidebar {
+        transform: translateX(-100%); 
+        z-index: 120; 
+        box-shadow: var(--shadow-xl); 
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .page-container {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .table-card {
+        overflow-x: auto;
+    }
+
+    /* === Адаптация других страниц === */
+    
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* * --- Только Телефоны (до 768px) ---
+ */
+@media (max-width: 768px) {
+    
+    /* --- Главная страница: Фильтры --- */
+    .filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    /* --- Главная страница: Таблица --- */
+    table {
+        min-width: 700px; 
+    }
+
+    /* --- Модальное окно: Формы --- */
+    .item-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-suggestions {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-height: 98vh;
+    }
+
+    .form-section {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-grid-2,
+    .item-form-grid-3 {
+        grid-template-columns: 1fr; 
+    }
+}
+
+/*
+ * ===================================================================
+ * ===     СТИЛИ ДЛЯ "КАРТОЧЕК" В ТАБЛИЦЕ (ЗАПРОС №3)             ===
+ * ===================================================================
+ */
+
+/* 1. Убираем ВСЕ рамки, кроме самой нижней в группе */
+#ordersTableBody tr td {
+    border-bottom: none;
+}
+
+/* 2. Добавляем тонкую рамку МЕЖДУ товарами (как в твоем старом файле) */
+#ordersTableBody .item-row-border {
+    border-bottom: 1px dashed var(--border-color) !important;
+}
+
+/* 3. Добавляем ЖИРНУЮ рамку ПОСЛЕ заказа */
+#ordersTableBody .order-row-end td {
+    border-bottom: 3px solid var(--medium-gray) !important;
+}
+
+/* 4. Убираем фон при наведении, чтобы не ломать вид "карточки" */
+#ordersTableBody tr:hover {
+    background: transparent;
+}
+
+
+/*
+ * ===================================================================
+ * ===     СТИЛИ ДЛЯ НОВОГО ПОЛЯ "ТИП ПРОДУКЦИИ" (ЗАПРОС №1)     ===
+ * ===================================================================
+ */
+
+/* Поле <input> */
+.product-name-input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: 'Roboto', sans-serif;
+    transition: all 0.2s ease;
+}
+.product-name-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+    outline: none;
+}
+
+/* Кнопка "Выбрать из списка" */
+.product-type-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+.product-type-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+/* Сетка с подсказками */
+.product-suggestions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-top: 5px;
+}
+
+/* Кнопка-подсказка (напр. "Визитки") */
+.product-suggestion {
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+.product-suggestion:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+    transform: translateY(-2px);
+}
+.product-suggestion i {
+    color: var(--primary-color);
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
 }

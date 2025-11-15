@@ -8,6 +8,7 @@ urlpatterns = [
     # --- Главная и Профил ---
     path('', order_views.index, name='index'), 
     path('profile/', order_views.profile_view, name='profile_page'),
+    path('logout/', order_views.logout_view, name='logout'), 
     
     # --- 👇 ВОТ ИСПРАВЛЕНИЕ: Добавлен путь для статистики ---
     path('statistics/', order_views.statistics_page, name='statistics_page'),

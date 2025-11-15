@@ -1,96 +1,94 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Мой профил{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock extra_css %}
+{% block title %}Мой профиль{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="main-content">
+        
+        <h2 class="profile-page-title">Мой профиль</h2>
 
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
+        <div class="profile-grid">
 
-            <div class="filters-card" style="margin: 20px 0;">
-                <div class="filters-header-title" style="margin-bottom: 25px;">
-                    <i class="fas fa-user-edit"></i>
-                    <span>Личная информация</span>
-                </div>
-                
-                <div class="form-group">
-                    <label for="id_first_name">Имя:</label>
-                    {{ user_form.first_name }}
-                </div>
-                
-                <div class="form-group">
-                    <label for="id_last_name">Фамилия:</label>
-                    {{ user_form.last_name }}
-                </div>
-                
-                <div class="form-group">
-                    <label for="id_email">Email:</label>
-                    {{ user_form.email }}
-                </div>
-            </div>
-
-            <div class="filters-card" style="margin: 20px 0;">
-                <div class="filters-header-title" style="margin-bottom: 25px;">
-                    <i class="fas fa-image"></i>
-                    <span>Аватар</span>
-                </div>
-                
-                <div class="profile-avatar-upload">
-                    <img src="{{ user.profile.avatar.url }}" alt="Текущий аватар" class="current-avatar">
-                    <div class="form-group">
-                        <label for="id_avatar">Загрузить новый аватар:</label>
-                        {{ profile_form.avatar }}
+            <div class="filters-card">
+                <form method="post" enctype="multipart/form-data" action="{% url 'profile_page' %}">
+                    {% csrf_token %}
+                    
+                    <div class="profile-avatar-new">
+                        <img src="{{ user.profile.avatar.url }}" alt="Аватар" class="current-avatar-new">
+                        
+                        <label for="id_avatar" class="change-photo-btn">Изменить фото</label>
+                        
+                        {{ profile_form.avatar }} 
                     </div>
-                </div>
+
+                    <div class="form-group">
+                        <label for="{{ user_form.first_name.id_for_label }}">Имя</label>
+                        {{ user_form.first_name }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ user_form.last_name.id_for_label }}">Фамилия</label>
+                        {{ user_form.last_name }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ user_form.username.id_for_label }}">Логин</label>
+                        {{ user_form.username }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ user_form.email.id_for_label }}">Email</label>
+                        {{ user_form.email }}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-save-profile" name="save_profile">
+                        Сохранить данные
+                    </button>
+                </form>
             </div>
 
-            <div class="filters-card" style="margin: 20px 0;">
-                <button type="submit" class="btn btn-content">
-                    <i class="fas fa-save"></i>
-                    Сохранить изменения
-                </button>
+            <div class="filters-card password-form-card">
+                <h3>Сменить пароль</h3>
                 
-                <a href="{% url 'password_change' %}" class="btn" style="margin-left: 15px; background: white; color: var(--text-color); border: 1px solid var(--border-color);">
-                    <i class="fas fa-lock"></i>
-                    Сменить пароль
-                </a>
+                <form method="post" action="{% url 'profile_page' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="{{ password_form.old_password.id_for_label }}">Старый пароль*</label>
+                        {{ password_form.old_password }}
+                        {% if password_form.old_password.errors %}
+                            <div class="form-error">{{ password_form.old_password.errors.as_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ password_form.new_password1.id_for_label }}">Новый пароль*</label>
+                        {{ password_form.new_password1 }}
+                        {% if password_form.new_password1.help_text %}
+                            <div class="help-text">{{ password_form.new_password1.help_text|safe }}</div>
+                        {% endif %}
+                        {% if password_form.new_password1.errors %}
+                            <div class="form-error">{{ password_form.new_password1.errors.as_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ password_form.new_password2.id_for_label }}">Подтверждение нового пароля*</label>
+                        {{ password_form.new_password2 }}
+                        {% if password_form.new_password2.help_text %}
+                            <div class="help-text">{{ password_form.new_password2.help_text|safe }}</div>
+                        {% endif %}
+                        {% if password_form.new_password2.errors %}
+                            <div class="form-error">{{ password_form.new_password2.errors.as_text }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-danger" name="change_password">
+                        Изменить пароль
+                    </button>
+                </form>
             </div>
 
-        </form>
-    </div>
-</div>
-
-<style>
-    form input[type="text"],
-    form input[type="email"],
-    form input[type="file"] {
-        width: 100%;
-        padding: 14px 18px;
-        border: 2px solid var(--border-color);
-        border-radius: 12px;
-        font-size: 15px;
-        font-family: 'Roboto', sans-serif;
-    }
-    form input[type="file"] {
-        padding: 10px;
-    }
-    .profile-avatar-upload {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-    }
-    .current-avatar {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 4px solid var(--border-color);
-    }
-    .profile-avatar-upload .form-group {
-        flex: 1;
-    }
-</style>
-{% endblock %}
+        </div> </div> </div> {% endblock %}

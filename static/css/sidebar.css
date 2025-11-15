@@ -1,0 +1,102 @@
+/*
+* ===================================================================
+* ===          СТИЛИ ДЛЯ СКЛАДНОГО САЙДБАРА                     ===
+* ===================================================================
+*/
+
+/* 1. Кнопка-стрелка */
+.sidebar-toggle-btn {
+    position: absolute;
+    bottom: 25px;
+    right: -15px; /* Выступает за край */
+
+    background: var(--gradient);
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+    z-index: 150; /* Выше всего */
+}
+
+.sidebar-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-lg);
+}
+
+.sidebar-toggle-btn i {
+    transition: transform 0.3s ease;
+    font-size: 14px;
+}
+
+/* * 2. Стили, когда <body> имеет класс .sidebar-collapsed 
+*/
+
+/* 2.1. Уменьшаем сайдбар */
+body.sidebar-collapsed .sidebar {
+    width: var(--sidebar-width-collapsed);
+}
+
+/* 2.2. Двигаем основной контент */
+body.sidebar-collapsed .page-container {
+    margin-left: var(--sidebar-width-collapsed);
+    width: calc(100% - var(--sidebar-width-collapsed));
+}
+
+/* 2.3. Поворачиваем стрелку */
+body.sidebar-collapsed .sidebar-toggle-btn i {
+    transform: rotate(180deg);
+}
+
+/* 2.4. Прячем текст и логотип */
+body.sidebar-collapsed .sidebar .menu-text,
+body.sidebar-collapsed .sidebar .sidebar-logo-link .logo-text {
+    display: none;
+}
+
+/* 2.5. Центрируем иконки и лого-бабочку */
+body.sidebar-collapsed .sidebar .menu-item {
+    justify-content: center;
+}
+body.sidebar-collapsed .sidebar .sidebar-logo-link {
+    padding-left: 0;
+    text-align: center;
+}
+body.sidebar-collapsed .sidebar .logo::before {
+    margin-left: 5px; /* Немного центрируем бабочку */
+}
+
+/* * 3. Адаптация: на мобильных отключаем эту функцию
+*/
+@media (max-width: 992px) {
+    .sidebar-toggle-btn {
+        display: none; /* Прячем стрелку на мобильных */
+    }
+
+    /* Отменяем "сложенное" состояние */
+    body.sidebar-collapsed .sidebar {
+        width: var(--sidebar-width);
+    }
+
+    body.sidebar-collapsed .page-container {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    body.sidebar-collapsed .sidebar .menu-text,
+    body.sidebar-collapsed .sidebar .sidebar-logo-link .logo-text {
+        display: block; /* Текст должен быть виден (когда меню открыто) */
+    }
+
+    body.sidebar-collapsed .sidebar .menu-item {
+        justify-content: flex-start;
+    }
+}

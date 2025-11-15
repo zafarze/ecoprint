@@ -10,7 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}?v=1.3">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}?v=1.0">
+
+    {% block extra_css %}
+    {% endblock extra_css %}
 </head>
 <body>
 
@@ -25,7 +29,16 @@
 
     </div> 
     
-    <script src="{% static 'js/app.js' %}"></script>
+    <script>
+        // Передаем настройки из Django (Profile) в JavaScript
+        // Теперь app.js сможет их прочитать
+        window.USER_SETTINGS = {
+            soundEnabled: {% if request.user.is_authenticated %}{{ request.user.profile.sound_notifications|yesno:"true,false" }}{% else %}true{% endif %},
+            popupEnabled: {% if request.user.is_authenticated %}{{ request.user.profile.popup_notifications|yesno:"true,false" }}{% else %}true{% endif %},
+            dayBeforeEnabled: {% if request.user.is_authenticated %}{{ request.user.profile.day_before_notifications|yesno:"true,false" }}{% else %}true{% endif %}
+        };
+    </script>
+    <script src="{% static 'js/app.js' %}?v=1.2"></script>
 
     {% block extra_js %}
     {% endblock extra_js %}

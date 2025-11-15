@@ -1,0 +1,149 @@
+/*
+ * ===================================================================
+ * ===          СТИЛИ ДЛЯ НОВОЙ СТРАНИЦЫ ПРОФИЛЯ (v2)            ===
+ * ===================================================================
+ */
+
+/* Общий заголовок "Мой профиль" */
+.profile-page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 20px;
+}
+
+/* Сетка из 2-х колонок */
+.profile-grid {
+    display: grid;
+    /* Левая колонка уже, правая шире */
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+    align-items: start;
+}
+
+/* Новый блок для аватара */
+.profile-avatar-new {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+/* Сам аватар */
+.current-avatar-new {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 4px solid white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Скрываем стандартный инпут для файла */
+.profile-avatar-new input[type="file"] {
+    display: none;
+}
+
+/* Стилизуем <label> как кнопку "Изменить фото" */
+.change-photo-btn {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--primary-color);
+    cursor: pointer;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.change-photo-btn:hover {
+    background: var(--primary-light);
+}
+
+/* Кнопка "Сохранить данные" (синяя/фиолетовая) */
+.btn-save-profile {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    background: #6366f1; /* Indigo-500 */
+    color: white;
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.btn-save-profile:hover {
+    background: #4f46e5; /* Indigo-600 */
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* === Стили для правой карточки (Пароль) === */
+
+.password-form-card h3 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 25px;
+    color: var(--text-color);
+}
+
+/* Серый текст помощи под инпутами */
+.help-text {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+/* Текст ошибки */
+.form-error {
+    font-size: 13px;
+    color: var(--danger-color);
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+/* Кнопка "Изменить пароль" (красная) */
+.password-form-card .btn-danger {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.password-form-card .btn-danger:hover {
+    transform: translateY(-2px);
+}
+
+/* Переопределяем стили инпутов, чтобы они были как на скриншоте */
+.profile-grid .form-group input {
+    background: #f8fafc; /* Чуть серый фон */
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 15px;
+    padding: 14px 18px;
+}
+
+.profile-grid .form-group input:focus {
+    background: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+    transform: none; /* Убираем эффект из main.css */
+}
+
+/* --- Адаптация для мобильных --- */
+@media (max-width: 992px) {
+    .profile-grid {
+        /* На планшетах - одна колонка */
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-page-title {
+        font-size: 24px;
+    }
+}
