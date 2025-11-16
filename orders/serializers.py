@@ -41,7 +41,7 @@ class ItemSerializer(serializers.ModelSerializer):
             'comment',
             'responsible_user',
             'responsible_user_id',
-            'is_archived', # Для фильтрации в API Заказов
+            'is_archived', # Для фильтрации
             'ready_at'     # Дата завершения
         ] 
 
@@ -69,10 +69,10 @@ class ItemWriteSerializer(serializers.ModelSerializer):
 # === ГЛАВНЫЙ СЕРИАЛИЗАТОР ЗАКАЗА (Order) ===
 class OrderSerializer(serializers.ModelSerializer):
     
-    # Поле №1: ДЛЯ ЧТЕНИЯ (GET): Возвращает только НЕ-архивированные товары
+    # Поле №1: ДЛЯ ЧТЕНИЯ (GET): Возвращает товары
     items = serializers.SerializerMethodField()
     
-    # Поле №2: ДЛЯ ЗАПИСИ (POST/PUT): Принимает массив товаров для сохранения/обновления
+    # Поле №2: ДЛЯ ЗАПИСИ (POST/PUT): Принимает массив товаров
     items_write = ItemWriteSerializer(
         many=True, 
         write_only=True, 
@@ -90,37 +90,45 @@ class OrderSerializer(serializers.ModelSerializer):
             'items_write'    
         ]
 
+    # --- 👇 ГЛАВНОЕ ИЗМЕНЕНИЕ ---
     # Метод для получения списка товаров для чтения
     def get_items(self, obj):
-        # Отдаем только активные (не-архивированные) товары
-        active_items = obj.items.filter(is_archived=False)
-        serializer = ItemSerializer(active_items, many=True)
+        
+        # 1. Проверяем 'context', который передал OrderViewSet
+        #    По умолчанию - показываем НЕ-архивные
+        show_archived = self.context.get('show_archived', False)
+        
+        if show_archived:
+            # Если context['show_archived'] == True,
+            # Показываем только АРХИВНЫЕ товары
+            items_to_show = obj.items.filter(is_archived=True)
+        else:
+            # Иначе (по умолчанию),
+            # Показываем только АКТИВНЫЕ (НЕ-архивные) товары
+            items_to_show = obj.items.filter(is_archived=False)
+            
+        # 2. Сериализуем отфильтрованный список
+        serializer = ItemSerializer(items_to_show, many=True)
         return serializer.data
+    # --- 👆 КОНЕЦ ИЗМЕНЕНИЯ ---
 
     # Логика создания нового заказа (POST)
     def create(self, validated_data):
-        # Удаляем items_write из validated_data, используя [] по умолчанию
         items_data = validated_data.pop('items_write', []) 
-        
-        # Создаем Order
         order = Order.objects.create(**validated_data)
-        
-        # Создаем связанные Items
         for item_data in items_data:
             Item.objects.create(order=order, **item_data)
         return order
         
     # Логика обновления существующего заказа (PUT/PATCH)
     def update(self, instance, validated_data):
-        # Удаляем items_write из validated_data, используя None по умолчанию.
-        # Это предотвращает KeyError, если items_write не был передан.
         items_data = validated_data.pop('items_write', None) 
 
         # 1. Обновляем поля Order
         instance.client = validated_data.get('client', instance.client)
         instance.save() 
         
-        # 2. Обновляем Items, ТОЛЬКО если items_write был передан (items_data is not None)
+        # 2. Обновляем Items
         if items_data is not None:
             # Удаляем старые, не-архивированные товары
             instance.items.filter(is_archived=False).delete()
@@ -129,6 +137,6 @@ class OrderSerializer(serializers.ModelSerializer):
             for item_data in items_data:
                 Item.objects.create(order=instance, **item_data)
         
-        # 3. Обновляем общий статус Order, исходя из новых/существующих Items
+        # 3. Обновляем общий статус Order
         instance.update_status() 
         return instance

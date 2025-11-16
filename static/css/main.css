@@ -1,4 +1,5 @@
-/* Полный файл D:\Projects\EcoPrint\staticfiles\css\main.css с исправлениями */
+/* Полный файл D:\Projects\EcoPrint\staticfiles\css\main.css */
+/* (С УДАЛЕННЫМИ БЛОКАМИ ДЛЯ СТАТИСТИКИ И НАСТРОЕК) */
 :root {
     --primary-color: #0088cc;
     --primary-hover: #0077b3;
@@ -334,12 +335,14 @@ tr:hover {
     color: #6b21a8;
 }
 
+/* Основной контейнер для карточек товаров */
 .items-container {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
+/* Карточка товара - полная копия из index_first.html */
 .item-row {
     display: flex;
     align-items: center;
@@ -357,6 +360,43 @@ tr:hover {
     transform: translateX(5px);
 }
 
+/* Номер товара в кружке */
+.item-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--gradient);
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Информация о товаре */
+.item-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.item-name {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.item-quantity {
+    color: var(--text-light);
+    font-size: 13px;
+    background: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* Статус товара - кнопка для переключения */
 .item-status {
     cursor: pointer;
     padding: 6px 12px;
@@ -390,38 +430,27 @@ tr:hover {
     color: white;
 }
 
-.item-info {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+/* Удаляем старые стили, которые конфликтуют */
+.item-details {
+    display: none; /* Скрываем блок с деталями, т.к. в новом дизайне их нет */
 }
 
-.item-name {
-    font-weight: 600;
-    color: var(--text-color);
-}
-
-.item-quantity {
-    color: var(--text-light);
-    font-size: 13px;
-    background: white;
-    padding: 4px 8px;
-    border-radius: 6px;
-}
-
-.item-number {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    background: var(--gradient);
-    color: white;
-    border-radius: 50%;
-    font-size: 12px;
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+    .item-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .item-info {
+        flex-basis: 100%;
+        order: 2;
+    }
+    
+    .item-status {
+        order: 3;
+        min-width: 80px;
+    }
 }
 
 .actions {
@@ -1436,56 +1465,9 @@ header {
     padding: 0 !important;
     overflow: hidden; /* Скрывает углы картинки, пока она не загрузилась */
 }
-/*
- * === Стили для страницы "Настройки" (Карточки) ===
- */
 
-.settings-grid {
-    display: grid;
-    /* 2 колонки одинаковой ширины */
-    grid-template-columns: repeat(2, 1fr); 
-    gap: 20px;
-}
-
-.settings-card {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    background: white;
-    border-radius: 16px;
-    padding: 25px;
-    box-shadow: var(--shadow-md);
-    text-decoration: none;
-    color: var(--text-color);
-    transition: all 0.2s ease-in-out;
-}
-
-.settings-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
-}
-
-.settings-card-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: white;
-}
-
-.settings-card-content h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 5px;
-}
-
-.settings-card-content p {
-    font-size: 14px;
-    color: var(--text-light);
-}
+/* --- (БЛОК УДАЛЕН) Стили для страницы "Настройки" --- */
+/* (Этот блок удален, т.к. он в settings.css) */
 
 /* Грид для 2 колонок в модальном окне (Клиент + Ответственный) */
 .form-grid-2 {
@@ -1627,65 +1609,8 @@ td[rowspan] {
     transform: rotate(90deg);
 }
 
-/* --- Стили для страницы "Статистика" --- */
-
-.kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.kpi-card {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: var(--shadow-md);
-    border-left: 5px solid var(--primary-color);
-}
-
-.kpi-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    flex-shrink: 0;
-}
-
-.kpi-content .kpi-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text-color);
-    line-height: 1.2;
-}
-
-.kpi-content .kpi-label {
-    font-size: 15px;
-    color: var(--text-light);
-}
-
-.chart-grid {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 20px;
-}
-
-.chart-container {
-    padding: 25px;
-}
-
-.chart-container h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 20px;
-    text-align: center;
-}
+/* --- (БЛОК УДАЛЕН) Стили для страницы "Статистика" --- */
+/* (Этот блок удален, т.к. он в statistics.css) */
 
 textarea.item-comment {
     width: 100%;
@@ -1865,33 +1790,161 @@ textarea.item-comment:focus {
         grid-template-columns: 1fr; 
     }
 }
-
 /*
  * ===================================================================
- * ===     СТИЛИ ДЛЯ "КАРТОЧЕК" В ТАБЛИЦЕ (ЗАПРОС №3)             ===
+ * ===     СТИЛИ ДЛЯ ВЛОЖЕННЫХ КАРТОЧЕК (v5 - КОМПАКТНЫЙ РЯД)     ===
  * ===================================================================
  */
 
-/* 1. Убираем ВСЕ рамки, кроме самой нижней в группе */
-#ordersTableBody tr td {
-    border-bottom: none;
-}
-
-/* 2. Добавляем тонкую рамку МЕЖДУ товарами (как в твоем старом файле) */
-#ordersTableBody .item-row-border {
-    border-bottom: 1px dashed var(--border-color) !important;
-}
-
-/* 3. Добавляем ЖИРНУЮ рамку ПОСЛЕ заказа */
-#ordersTableBody .order-row-end td {
-    border-bottom: 3px solid var(--medium-gray) !important;
-}
-
-/* 4. Убираем фон при наведении, чтобы не ломать вид "карточки" */
+/* 1. Убираем фон при наведении с TR */
 #ordersTableBody tr:hover {
-    background: transparent;
+    background: transparent !important;
+}
+/* 2. Убираем стандартные рамки */
+#ordersTableBody tr td {
+    border-bottom: none !important;
+}
+/* 3. Делаем одну "карточку" на всю строку <tr> */
+#ordersTableBody tr {
+    border-bottom: 5px solid #e2e8f0 !important;
+}
+/* 4. Стили для ячеек <td> */
+#ordersTableBody tr td {
+    background: #fdfdff; 
+    vertical-align: top;
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+/* 5. Скругление углов */
+#ordersTableBody tr td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+#ordersTableBody tr td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+/* 6. Стили для ячейки "Товары" */
+#ordersTableBody td.items-cell {
+    padding: 12px;
+}
+/* 7. Контейнер ВНУТРИ ячейки */
+.items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
+/* --- (НАЧАЛО ИЗМЕНЕНИЙ) --- */
+
+/* 8. САМА КАРТОЧКА (Новая сетка) */
+.item-row-card {
+    display: grid;
+    /* Колонки: Номер | Контент | Статус */
+    grid-template-columns: auto 1fr auto;
+    gap: 12px 15px; 
+    align-items: center; /* Выравниваем все по центру ряда */
+    
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+.item-row-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* 9. Номер (Кружок) */
+.item-row-card .item-number {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2; /* Первый ряд */
+}
+
+/* 10. НОВЫЙ БЛОК: Контент (все в один ряд) */
+.item-row-card .item-content-row {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2; /* Первый ряд */
+    
+    display: flex;
+    flex-wrap: wrap; /* Позволяем перенос на мобильных */
+    align-items: center;
+    gap: 8px 15px; /* 8px по высоте, 15px по ширине */
+}
+
+/* 11. Элементы внутри .item-content-row */
+.item-content-row .item-name {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 15px;
+}
+.item-content-row .item-quantity {
+    color: var(--text-light);
+    font-size: 13px;
+    background: white;
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+.item-content-row .item-deadline,
+.item-content-row .item-creator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+.item-content-row .item-deadline i,
+.item-content-row .item-creator i {
+    color: var(--text-light);
+    font-size: 14px;
+}
+.item-content-row .item-creator span {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* 12. Статус товара (Кнопка) */
+.item-row-card .item-status {
+    grid-column: 3 / 4;
+    grid-row: 1 / 2; /* Первый ряд */
+    align-self: center;
+    min-width: 100px;
+    padding: 8px 12px;
+}
+
+/* 13. Комментарий (под всем) */
+.item-row-card .item-comment-display {
+    grid-column: 2 / 3; /* Под контентом */
+    grid-row: 2 / 3;  /* Второй ряд */
+    
+    font-size: 13px;
+    color: var(--text-light);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-top: 5px;
+    padding-left: 10px;
+    border-left: 3px solid var(--border-color);
+    display: flex; 
+    gap: 8px; 
+    align-items: flex-start;
+}
+.item-row-card .item-comment-display i {
+    margin-top: 3px; 
+}
+
+
+/* 14. Классы для подсветки (желтый/красный) */
+.item-row-card.item-urgent {
+    background-color: #fef9c3; 
+}
+.item-row-card.item-very-urgent {
+    background-color: #fee2e2; 
+}
 
 /*
  * ===================================================================
@@ -1966,4 +2019,163 @@ textarea.item-comment:focus {
     font-size: 16px;
     width: 20px;
     text-align: center;
+}
+
+/*
+ * ===================================================================
+ * ===     СТИЛИ ДЛЯ ВЛОЖЕННЫХ КАРТОЧЕК ТОВАРОВ (v4 - ДИЗАЙН КАК НА КАРТИНКЕ)     ===
+ * ===================================================================
+ */
+
+/* 1. Убираем фон при наведении с TR */
+#ordersTableBody tr:hover {
+    background: transparent !important;
+}
+
+/* 2. Убираем стандартные рамки */
+#ordersTableBody tr td {
+    border-bottom: none !important;
+}
+
+/* 3. Делаем одну "карточку" на всю строку <tr> */
+#ordersTableBody tr {
+    /* Это создаст "тень" между карточками */
+    border-bottom: 5px solid #e2e8f0 !important;
+}
+
+/* 4. Стили для ячеек <td> */
+#ordersTableBody tr td {
+    background: #fdfdff; /* Единый фон для всей строки-карточки */
+    vertical-align: top;
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+/* 5. Скругление углов */
+#ordersTableBody tr td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+#ordersTableBody tr td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* 6. Стили для ячейки "Товары", где лежат все карточки */
+#ordersTableBody td.items-cell {
+    padding: 12px;
+}
+
+/* 7. Контейнер ВНУТРИ ячейки, который хранит карточки */
+.items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 8. САМА КАРТОЧКА (как на image_ad4124.png) */
+.item-row-card {
+    display: grid;
+    /* Колонки: Номер | Информация | Статус */
+    grid-template-columns: auto 1fr auto;
+    gap: 12px 15px; /* 12px по высоте, 15px по ширине */
+    align-items: center;
+    
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+.item-row-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* 9. Номер (Кружок) */
+.item-row-card .item-number {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    /* Стили из main.css уже подходят */
+}
+
+/* 10. Главная инфо (Название + Кол-во) */
+.item-row-card .item-info {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    /* Стили из main.css уже подходят */
+}
+
+/* 11. Статус товара (Кнопка) */
+.item-row-card .item-status {
+    grid-column: 3 / 4;
+    grid-row: 1 / 3; /* <-- ВАЖНО: Растягиваем на 2 строки */
+    align-self: center;
+    min-width: 100px;
+    padding: 8px 12px;
+    /* Стили из main.css уже подходят */
+}
+
+/* 12. Доп. инфо (Срок, Создатель) */
+.item-row-card .item-details {
+    grid-column: 2 / 3; /* Под .item-info */
+    grid-row: 2 / 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* Пробел между срок/создатель */
+    align-items: center;
+}
+
+.item-details .item-deadline,
+.item-details .item-creator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+.item-details .item-deadline i,
+.item-details .item-creator i {
+    color: var(--text-light);
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+}
+/* Делаем имя создателя жирным */
+.item-details .item-creator span {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+
+/* 13. Комментарий (под всем) */
+.item-row-card .item-comment-display {
+    grid-column: 1 / 3; /* Растягиваем под номером и инфо */
+    grid-row: 3 / 4;
+    
+    font-size: 13px;
+    color: var(--text-light);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-top: 5px;
+    padding-left: 10px;
+    border-left: 3px solid var(--border-color);
+    display: flex; /* Для иконки */
+    gap: 8px; /* Для иконки */
+    align-items: flex-start;
+}
+.item-row-card .item-comment-display i {
+    margin-top: 3px; /* Иконка чуть выше текста */
+}
+
+
+/* 14. Классы для подсветки (желтый/красный) */
+.item-row-card.item-urgent {
+    background-color: #fef9c3; /* Светло-желтый */
+}
+.item-row-card.item-very-urgent {
+    background-color: #fee2e2; /* Светло-красный */
 }

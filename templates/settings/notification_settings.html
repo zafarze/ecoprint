@@ -3,6 +3,9 @@
 
 {% block title %}Настройки уведомлений{% endblock %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/settings_forms.css' %}?v=1.0">
+{% endblock extra_css %}
 {% block content %}
 <div class="container">
     <div class="main-content">
@@ -47,22 +50,6 @@
                 </label>
             </div>
             
-            <style>
-                .setting-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 15px;
-                    padding: 15px;
-                    background: var(--light-gray);
-                    border-radius: 10px;
-                }
-                .setting-label {
-                    font-weight: 500;
-                    color: var(--text-color);
-                }
-            </style>
-
             <div class_ ="form-actions" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
                 <button type="submit" class="btn btn-content">
                     <i class="fas fa-save"></i>

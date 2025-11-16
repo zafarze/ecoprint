@@ -3,6 +3,9 @@
 
 {% block title %}Данные компании{% endblock %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/settings_forms.css' %}?v=1.0">
+{% endblock extra_css %}
 {% block content %}
 <div class="container">
     <div class="main-content">
@@ -50,38 +53,6 @@
                 
                 {{ form.company_logo }}
             </div>
-
-            <style>
-                .form-group {
-                    margin-bottom: 20px;
-                }
-                .form-group label {
-                    display: block;
-                    margin-bottom: 8px;
-                    font-weight: 500;
-                    color: var(--text-color);
-                    font-size: 14px;
-                }
-                .form-group input, .form-group select {
-                    width: 100%;
-                    padding: 14px 18px;
-                    border: 2px solid var(--border-color);
-                    border-radius: 12px;
-                    font-size: 15px;
-                    font-family: 'Roboto', sans-serif;
-                }
-                .form-group input[type="file"] {
-                    padding: 10px;
-                }
-                .current-company-logo {
-                    max-width: 200px;
-                    height: auto;
-                    border: 2px solid var(--border-color);
-                    border-radius: 8px;
-                    margin-bottom: 10px;
-                    display: block;
-                }
-            </style>
 
             <div class_ ="form-actions" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
                 <button type="submit" class="btn btn-content">

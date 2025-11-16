@@ -3,6 +3,9 @@
 
 {% block title %}Интеграции{% endblock %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/settings_forms.css' %}?v=1.0">
+{% endblock extra_css %}
 {% block content %}
 <div class="container">
     <div class="main-content">
@@ -42,13 +45,6 @@
                 </ul>
             </div>
             
-            <style>
-                .form-group { margin-bottom: 20px; }
-                .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
-                .form-group input { width: 100%; padding: 14px 18px; border: 2px solid var(--border-color); border-radius: 12px; font-size: 15px; }
-                .help-text { font-size: 13px; color: var(--text-light); padding-left: 20px; margin-top: 8px; }
-            </style>
-
             <div class_ ="form-actions" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
                 <button type="submit" class="btn btn-content">
                     <i class="fas fa-save"></i>

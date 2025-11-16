@@ -1,16 +1,15 @@
-# D:\Projects\EcoPrint\orders\views.py (ПОЛНЫЙ ОБНОВЛЕННЫЙ КОД)
+# D:\Projects\EcoPrint\orders\views.py (ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД)
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from rest_framework import viewsets, status, permissions
-from .serializers import OrderSerializer, ProductSerializer, UserSimpleSerializer
-from rest_framework.decorators import api_view
+from .serializers import OrderSerializer, ProductSerializer, UserSimpleSerializer, ItemSerializer
+from rest_framework.decorators import api_view, action
 from .models import Order, Item, Profile, CompanySettings, TelegramSettings, Product
 from django.contrib.auth.models import User
 from django.db.models import Count
 from rest_framework.response import Response
 from datetime import date, timedelta
-from .serializers import OrderSerializer, ItemSerializer, ProductSerializer, UserSimpleSerializer
 from .forms import (UserUpdateForm, ProfileUpdateForm, AdminUserCreationForm, 
                     AdminUserUpdateForm, NotificationSettingsForm, CompanySettingsForm,
                     TelegramSettingsForm, ProductForm)
@@ -21,26 +20,48 @@ from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import get_object_or_404
 
+# ... (index, logout_view - без изменений) ...
 @login_required
 def index(request):
     context = {}
     return render(request, 'index.html', context)
 
-# --- View для выхода из системы ---
 def logout_view(request):
-    """
-    Обрабатывает выход пользователя из системы.
-    """
     logout(request)
     messages.success(request, 'Вы успешно вышли из системы.')
     return redirect('index')
 
+
 # --- Наши API ViewSets ---
 class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all().order_by('-created_at')
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    # Фильтруем заказы
+    def get_queryset(self):
+        queryset = Order.objects.all()
+        is_archived = self.request.query_params.get('is_archived')
+        
+        if is_archived == 'true':
+            queryset = queryset.filter(items__is_archived=True)
+        elif is_archived == 'false':
+            queryset = queryset.filter(items__is_archived=False)
+        
+        return queryset.distinct().order_by('-created_at')
+
+    # Передаем context в сериализатор
+    def get_serializer_context(self):
+        context = super().get_serializer_context() 
+        is_archived_param = self.request.query_params.get('is_archived')
+        
+        if is_archived_param == 'true':
+            context['show_archived'] = True
+        else:
+            context['show_archived'] = False
+            
+        return context
+
+    # ... (perform_create - без изменений) ...
     def perform_create(self, serializer):
         order = serializer.save()
         try:
@@ -48,6 +69,48 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"Ошибка при вызове telegram_bot: {e}")
 
+    # Команда "Архивировать"
+    @action(detail=True, methods=['post'])
+    def archive(self, request, pk=None):
+        try:
+            order = self.get_object()
+            updated_count = order.items.update(is_archived=True)
+            return Response(
+                {'status': 'success', 'message': f'{updated_count} товаров архивировано.'},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'status': 'error', 'message': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    # --- 👇 НОВЫЙ МЕТОД: РАЗАРХИВАЦИЯ ЗАКАЗА ---
+    @action(detail=True, methods=['post'])
+    def unarchive(self, request, pk=None):
+        """
+        Пользовательский action для РАЗАРХИВАЦИИ заказа.
+        Он устанавливает 'is_archived=False' для всех товаров
+        внутри этого Заказа.
+        """
+        try:
+            order = self.get_object()
+            
+            # Эффективно обновляем все товары в заказе
+            updated_count = order.items.update(is_archived=False)
+            
+            return Response(
+                {'status': 'success', 'message': f'{updated_count} товаров восстановлено.'},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {'status': 'error', 'message': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    # --- 👆 КОНЕЦ НОВОГО МЕТОДА ---
+
+# ... (ItemViewSet, ProductViewSet, UserViewSet - без изменений) ...
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
@@ -65,6 +128,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
+# ... (все остальные views - profile_view, settings_page_view и т.д. - без изменений) ...
 @login_required
 def profile_view(request):
     try:
@@ -183,10 +247,7 @@ def user_delete_view(request, pk):
 
 @login_required
 def notification_settings_view(request):
-    try:
-        profile = request.user.profile
-    except Profile.DoesNotExist:
-        profile = Profile.objects.create(user=request.user)
+    profile, _ = Profile.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
         form = NotificationSettingsForm(request.POST, instance=profile)
@@ -261,7 +322,7 @@ def product_create_view(request):
         'form': form,
         'form_title': 'Создать новый товар'
     }
-    return render(request, 'settings/user_form.html', context)
+    return render(request, 'settings/product_form.html', context)
 
 @login_required
 def product_update_view(request, pk):
@@ -280,7 +341,7 @@ def product_update_view(request, pk):
         'form': form,
         'form_title': f'Редактировать: {product.name}'
     }
-    return render(request, 'settings/user_form.html', context)
+    return render(request, 'settings/product_form.html', context)
 
 @login_required
 def product_delete_view(request, pk):
@@ -300,54 +361,6 @@ def product_delete_view(request, pk):
 @login_required
 def statistics_page(request):
     return render(request, 'statistics.html')
-
-@api_view(['GET', 'POST'])
-def order_list_create(request):
-    if request.method == 'GET':
-        orders = Order.objects.all().order_by('-created_at')
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        serializer = OrderSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET', 'PUT', 'DELETE'])
-def order_detail(request, pk):
-    try:
-        order = Order.objects.get(pk=pk)
-    except Order.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'GET':
-        serializer = OrderSerializer(order)
-        return Response(serializer.data)
-
-    elif request.method == 'PUT':
-        serializer = OrderSerializer(order, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        order.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-@api_view(['GET'])
-def product_catalog(request):
-    products = Product.objects.all()
-    serializer = ProductSerializer(products, many=True)
-    return Response(serializer.data)
-
-@api_view(['GET'])
-def user_catalog(request):
-    users = User.objects.filter(is_active=True)
-    serializer = UserSimpleSerializer(users, many=True)
-    return Response(serializer.data)
 
 @api_view(['GET'])
 def statistics_data_view(request):

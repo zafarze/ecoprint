@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     # Наши приложения
     'rest_framework',
     'orders', 
+    # 'sslserver', <-- УДАЛЕНО. Он не был нужен и вызывал ошибку с Python 3.12
 ]
 
 MIDDLEWARE = [
@@ -112,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
@@ -158,5 +159,3 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_SSL_REDIRECT = True
-    
-LOGOUT_REDIRECT_URL = '/'

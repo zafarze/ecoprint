@@ -3,6 +3,9 @@
 
 {% block title %}{{ form_title }}{% endblock %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/settings_forms.css' %}?v=1.0">
+{% endblock extra_css %}
 {% block content %}
 <div class="container">
     <div class="main-content">
@@ -44,48 +47,4 @@
     </div>
 </div>
 
-<style>
-    .form-group {
-        margin-bottom: 20px;
-    }
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 500;
-        color: var(--text-color);
-        font-size: 14px;
-    }
-    .form-group input,
-    .form-group select {
-        width: 100%;
-        padding: 14px 18px;
-        border: 2px solid var(--border-color);
-        border-radius: 12px;
-        font-size: 15px;
-        font-family: 'Roboto', sans-serif;
-    }
-    .form-group input[type="checkbox"] {
-        width: auto;
-        height: 20px;
-        width: 20px;
-    }
-    .form-group input:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
-        outline: none;
-    }
-    .error-text {
-        color: var(--danger-color);
-        font-size: 13px;
-        margin-top: 5px;
-        list-style: none;
-        padding-left: 5px;
-    }
-    .help-text {
-        font-size: 13px;
-        color: var(--text-light);
-        padding-left: 20px;
-        margin-top: 8px;
-    }
-</style>
 {% endblock %}

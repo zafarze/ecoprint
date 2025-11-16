@@ -14,11 +14,44 @@
             </div>
         </div>
 
-        <div class="filters-card">
-            <p>Этот раздел скоро заработает.</p>
-            <p>Здесь будут отображаться все завершенные и архивированные заказы.</p>
+        <div class="table-card">
+            <table id="archiveTable">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">№</th>
+                        <th style="width: 15%;">Клиент</th>
+                        <th style="width: 60%;">Состав (архивированные товары)</th>
+                        <th style="width: 10%;">Статус</th>
+                        <th style="width: 10%;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="archiveTableBody">
+                    </tbody>
+            </table>
+            <div class="empty-state" id="archiveEmptyState" style="display: none;">
+                <i class="fas fa-box-open"></i>
+                <h3>Архив пуст</h3>
+                <p>Заказы, которые вы архивируете на главной странице, появятся здесь.</p>
+            </div>
+        </div>
+        
+        <div class="notification" id="notification">
+            <div class="notification-content">
+                <div class="notification-icon"><i class="fas fa-info-circle"></i></div>
+                <div class="notification-text">
+                    <div class="notification-title" id="notificationTitle"></div>
+                    <div class="notification-message" id="notificationMessage"></div>
+                </div>
+                <button class="notification-close" id="notificationCloseBtn"><i class="fas fa-times"></i></button>
+            </div>
         </div>
 
     </div>
 </div>
 {% endblock content %}
+
+{% block extra_js %}
+    <script type="module" src="{% static 'js/utils.js' %}"></script>
+    <script type="module" src="{% static 'js/api.js' %}"></script>
+    <script type="module" src="{% static 'js/archive.js' %}"></script>
+{% endblock %}
