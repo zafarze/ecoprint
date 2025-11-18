@@ -47,6 +47,9 @@ class ItemSerializer(serializers.ModelSerializer):
 
 # === Сериализатор Товара (Item) ТОЛЬКО ДЛЯ ЗАПИСИ (POST/PUT в Order) ===
 class ItemWriteSerializer(serializers.ModelSerializer):
+    # 👇 Добавили поле id, чтобы фронтенд мог присылать ID существующего товара
+    id = serializers.IntegerField(required=False)
+
     # Используем 'responsible_user_id', чтобы принимать только PK пользователя
     responsible_user_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), 
@@ -58,6 +61,7 @@ class ItemWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = [
+            'id', # 👈 Важно: добавили id в список полей
             'name', 
             'quantity', 
             'status', 
@@ -90,7 +94,6 @@ class OrderSerializer(serializers.ModelSerializer):
             'items_write'    
         ]
 
-    # --- 👇 ГЛАВНОЕ ИЗМЕНЕНИЕ ---
     # Метод для получения списка товаров для чтения
     def get_items(self, obj):
         
@@ -110,33 +113,66 @@ class OrderSerializer(serializers.ModelSerializer):
         # 2. Сериализуем отфильтрованный список
         serializer = ItemSerializer(items_to_show, many=True)
         return serializer.data
-    # --- 👆 КОНЕЦ ИЗМЕНЕНИЯ ---
 
     # Логика создания нового заказа (POST)
     def create(self, validated_data):
         items_data = validated_data.pop('items_write', []) 
         order = Order.objects.create(**validated_data)
         for item_data in items_data:
+            # При создании id в item_data игнорируется, создаются новые
+            if 'id' in item_data:
+                del item_data['id']
             Item.objects.create(order=order, **item_data)
         return order
         
     # Логика обновления существующего заказа (PUT/PATCH)
+    # 👇 ИСПРАВЛЕНО: Умное обновление вместо удаления
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items_write', None) 
 
         # 1. Обновляем поля Order
         instance.client = validated_data.get('client', instance.client)
+        # Если статус передан явно, обновляем его, но update_status() ниже может его пересчитать
+        if 'status' in validated_data:
+             instance.status = validated_data['status']
+             
         instance.save() 
         
-        # 2. Обновляем Items
+        # 2. Обновляем Items (Умное обновление)
         if items_data is not None:
-            # Удаляем старые, не-архивированные товары
-            instance.items.filter(is_archived=False).delete()
-            
-            # Создаем новые Items
+            keep_ids = [] # Список ID, которые нужно оставить (не удалять)
+
             for item_data in items_data:
-                Item.objects.create(order=instance, **item_data)
+                item_id = item_data.get('id', None)
+
+                if item_id:
+                    # А) Если ID есть -> Ищем существующий товар в этом заказе
+                    item_obj = Item.objects.filter(id=item_id, order=instance).first()
+                    if item_obj:
+                        # Обновляем поля найденного товара
+                        for attr, value in item_data.items():
+                            if attr != 'id': # ID менять нельзя
+                                setattr(item_obj, attr, value)
+                        item_obj.save()
+                        keep_ids.append(item_obj.id)
+                    else:
+                        # Если ID пришел, но товара такого нет (или он не от этого заказа),
+                        # можно либо игнорировать, либо создавать новый. 
+                        # Логичнее создать новый, убрав ошибочный ID.
+                        if 'id' in item_data:
+                            del item_data['id']
+                        new_item = Item.objects.create(order=instance, **item_data)
+                        keep_ids.append(new_item.id)
+                else:
+                    # Б) Если ID нет -> Создаем новый товар
+                    new_item = Item.objects.create(order=instance, **item_data)
+                    keep_ids.append(new_item.id)
+            
+            # 3. Удаляем товары, которых нет в новом списке
+            # Удаляем только НЕ архивные товары, которые не попали в keep_ids.
+            # Архивные товары не трогаем, чтобы они не исчезли, если фронтенд их не прислал.
+            instance.items.filter(is_archived=False).exclude(id__in=keep_ids).delete()
         
-        # 3. Обновляем общий статус Order
+        # 4. Обновляем общий статус Order на основе новых статусов товаров
         instance.update_status() 
         return instance

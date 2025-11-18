@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/settings_forms.css' %}?v=1.0">
+{% endblock extra_css %}
+{% block content %}
+<div class="container">
+    <div class="main-content">
+        
+        <form class="filters-card" style="margin: 20px 0;" method="post">
+            {% csrf_token %}
+            
+            <div class="filters-header-title" style="margin-bottom: 25px;">
+                <i class="fas fa-box-open"></i> <span>{{ form_title }}</span>
+            </div>
+            
+            {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}:</label>
+                
+                {{ field }}
+                
+                {% if field.help_text %}
+                    <ul class="help-text"><li>{{ field.help_text|safe }}</li></ul>
+                {% endif %}
+                {% if field.errors %}
+                    <div class="error-text">{{ field.errors.as_text }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="form-actions" style="margin-top: 20px;">
+                <button type="submit" class="btn btn-content">
+                    <i class="fas fa-save"></i>
+                    Сохранить
+                </button>
+                <a href="{% url 'product_list' %}" class="btn" style="margin-left: 15px; background: white; color: var(--text-color); border: 1px solid var(--border-color);">
+                    Отмена
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

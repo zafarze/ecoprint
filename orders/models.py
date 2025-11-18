@@ -1,4 +1,4 @@
-# D:\Projects\EcoPrint\orders\models.py (ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД)
+# D:\Projects\EcoPrint\orders\models.py (ПОЛНЫЙ ИСПРАВЛЕННЫЙ И ОПТИМИЗИРОВАННЫЙ КОД)
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -35,22 +35,33 @@ class Order(models.Model):
     def update_status(self):
         """
         Автоматически обновляет статус заказа на основе статусов его товаров.
+        ОПТИМИЗАЦИЯ: Использует values_list, чтобы не загружать тяжелые объекты.
         """
-        items = self.items.all()
+        # Получаем список статусов всех товаров (только строки, без загрузки объектов)
+        # Это экономит память и ускоряет работу БД.
+        statuses = list(self.items.values_list('status', flat=True))
         
-        if not items.exists():
-            self.status = 'not-ready'
-        elif all(item.status == 'ready' for item in items):
-            self.status = 'ready'
-        # Если хоть один 'in-progress' ИЛИ (есть готовые И есть неготовые) -> 'in-progress'
-        elif any(item.status == 'in-progress' for item in items) or \
-             (any(item.status == 'ready' for item in items) and \
-              any(item.status == 'not-ready' for item in items)):
-            self.status = 'in-progress'
+        old_status = self.status
+        new_status = 'not-ready'
+
+        if not statuses:
+            # Если товаров нет -> Не готов
+            new_status = 'not-ready'
+        elif all(s == 'ready' for s in statuses):
+            # Все товары готовы -> Готово
+            new_status = 'ready'
+        elif any(s == 'in-progress' for s in statuses) or \
+             ('ready' in statuses and 'not-ready' in statuses):
+            # Если что-то в процессе ИЛИ (часть готова, часть нет) -> В процессе
+            new_status = 'in-progress'
         else:
-            self.status = 'not-ready'
+            # Остальные случаи (все not-ready)
+            new_status = 'not-ready'
             
-        self.save()
+        # Сохраняем только если статус изменился, и обновляем ТОЛЬКО поле status
+        if old_status != new_status:
+            self.status = new_status
+            self.save(update_fields=['status'])
 
 
 # === Модель Товара в Заказе ===
@@ -115,17 +126,21 @@ class Item(models.Model):
         return f"{self.name} ({self.quantity} шт.)"
 
     def save(self, *args, **kwargs):
-        # Логика установки даты готовности
+        # 1. Логика установки даты готовности
+        # Если статус стал 'ready', а даты еще нет — ставим текущую
         if self.status == 'ready' and self.ready_at is None:
             self.ready_at = timezone.now()
+        # Если статус перестал быть 'ready' (вернули в работу), сбрасываем дату
         elif self.status != 'ready':
             self.ready_at = None
             
+        # 2. Сохраняем сам товар
         super().save(*args, **kwargs)
         
-        # Обновляем статус родительского заказа
-        # Используем order_id, чтобы избежать лишнего запроса, если объект order не подгружен
+        # 3. Обновляем статус родительского заказа
+        # Проверяем order_id, чтобы убедиться, что товар привязан к заказу
         if self.order_id:
+            # Вызываем метод модели Order, а не делаем логику здесь
             self.order.update_status()
 
 
@@ -159,13 +174,12 @@ class Profile(models.Model):
         return f'Профиль: {self.user.username}'
 
 
-# === 👇 ИСПРАВЛЕННЫЙ СИГНАЛ (Только один обработчик) ===
+# === Сигнал создания профиля ===
 @receiver(post_save, sender=User)
 def ensure_profile_exists(sender, instance, **kwargs):
     """
     Создает профиль пользователя при создании User, 
     или получает существующий, если он уже есть.
-    Предотвращает ошибку IntegrityError.
     """
     Profile.objects.get_or_create(user=instance)
 
@@ -198,7 +212,7 @@ class CompanySettings(models.Model):
         return "Настройки компании"
 
     def save(self, *args, **kwargs):
-        self.pk = 1  # Всегда ID=1
+        self.pk = 1  # Гарантируем, что запись всегда одна (ID=1)
         super(CompanySettings, self).save(*args, **kwargs)
     
     @classmethod
