@@ -1,9 +1,10 @@
 // D:\Projects\EcoPrint\static\js\archive.js
-// (ОБНОВЛЕННЫЙ КОД)
+// (ПОЛНЫЙ ОБНОВЛЕННЫЙ КОД)
 
-// Импортируем 'utils.js' и 'api.js'
+// Импортируем утилиты и API
 import { formatDate, getStatusText } from './utils.js';
-import { unarchiveOrder } from './api.js';
+import { unarchiveOrder, deleteOrder } from './api.js'; // Добавили deleteOrder
+import { showNotification } from './ui.js'; // Импортируем уведомления, вместо дублирования
 
 document.addEventListener('DOMContentLoaded', () => {
     // Настраиваем слушатели
@@ -15,16 +16,23 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     const tableBody = document.getElementById('archiveTableBody');
     tableBody?.addEventListener('click', handleTableClick);
-
-    // Уведомление
+    
+    // Слушатель закрытия уведомлений уже есть в ui.js, 
+    // но если на странице архива он не срабатывает, можно добавить здесь:
     const notificationCloseBtn = document.getElementById('notificationCloseBtn');
-    notificationCloseBtn?.addEventListener('click', closeNotification);
+    if (notificationCloseBtn) {
+        notificationCloseBtn.addEventListener('click', () => {
+             const notification = document.getElementById('notification');
+             if (notification) notification.classList.remove('show');
+        });
+    }
 }
 
 /**
- * Обрабатывает клики в таблице архива
+ * Обрабатывает клики в таблице архива (Восстановить / Удалить)
  */
 function handleTableClick(e) {
+    // 1. Клик на "Восстановить"
     const unarchiveBtn = e.target.closest('.unarchive-btn');
     if (unarchiveBtn) {
         const orderId = parseInt(unarchiveBtn.dataset.id);
@@ -32,16 +40,17 @@ function handleTableClick(e) {
         return;
     }
     
+    // 2. Клик на "Удалить"
     const deleteBtn = e.target.closest('.delete-btn');
     if (deleteBtn) {
-        // TODO: Добавить логику для удаления
-        alert('Функция удаления еще не реализована.');
+        const orderId = parseInt(deleteBtn.dataset.id);
+        handleDeleteOrder(orderId);
         return;
     }
 }
 
 /**
- * Главная функция загрузки
+ * Загружает список архивных заказов
  */
 async function loadArchivedOrders() {
     const tableBody = document.getElementById('archiveTableBody');
@@ -77,7 +86,7 @@ async function loadArchivedOrders() {
 }
 
 /**
- * Отрисовка строки
+ * Отрисовка одной строки таблицы
  */
 function renderArchiveRow(order, tableBody) {
     const archivedItems = order.items; 
@@ -85,17 +94,16 @@ function renderArchiveRow(order, tableBody) {
 
     const orderStatusHtml = `<span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>`;
     
-    // --- 👇 ИЗМЕНЕНИЕ: Добавлена кнопка "unarchive-btn" ---
+    // Кнопки действий
     const actionsHtml = `
         <div class="actions">
             <button class="icon-btn unarchive-btn" title="Восстановить из архива" data-id="${order.id}">
                 <i class="fas fa-undo"></i>
             </button>
-            <button class="icon-btn delete" title="Удалить навсегда" data-id="${order.id}">
+            <button class="icon-btn delete delete-btn" title="Удалить навсегда" data-id="${order.id}">
                 <i class="fas fa-trash"></i>
             </button>
         </div>`;
-    // --- 👆 КОНЕЦ ИЗМЕНЕНИЯ ---
 
     let itemsContainerHtml = '<div class="items-container">';
     archivedItems.forEach((item, index) => {
@@ -116,7 +124,7 @@ function renderArchiveRow(order, tableBody) {
     itemsContainerHtml += '</div>';
 
     const row = document.createElement('tr');
-    row.id = `archive-row-${order.id}`; // Даем строке ID
+    row.id = `archive-row-${order.id}`; 
     row.innerHTML = `
         <td>${order.id}</td>
         <td><strong>${order.client}</strong></td>
@@ -127,29 +135,24 @@ function renderArchiveRow(order, tableBody) {
     tableBody.appendChild(row);
 }
 
-// --- 👇 НОВАЯ ФУНКЦИЯ: Обработчик разархивации ---
+/**
+ * Логика ВОССТАНОВЛЕНИЯ заказа
+ */
 async function handleUnarchiveOrder(orderId) {
     if (!confirm('Восстановить этот заказ из архива?\n\nОн вернется на главную страницу.')) {
         return;
     }
     
     try {
-        await unarchiveOrder(orderId); // Вызываем функцию из api.js
+        await unarchiveOrder(orderId); 
         
-        // Показываем уведомление
-        showNotification('Успешно', 'Заказ восстановлен и возвращен на главную.', 'success');
+        showNotification('Успешно', 'Заказ восстановлен.', 'success');
         
-        // Удаляем строку из таблицы архива
+        // Удаляем строку из UI
         const row = document.getElementById(`archive-row-${orderId}`);
-        if (row) {
-            row.remove();
-        }
+        if (row) row.remove();
         
-        // Проверяем, не пуста ли таблица
-        const tableBody = document.getElementById('archiveTableBody');
-        if (tableBody.children.length === 0) {
-            document.getElementById('archiveEmptyState').style.display = 'block';
-        }
+        checkEmptyState();
 
     } catch (error) {
         console.error(error);
@@ -157,28 +160,37 @@ async function handleUnarchiveOrder(orderId) {
     }
 }
 
-// --- 👇 НОВЫЕ ФУНКЦИИ: Уведомления (копия из ui.js) ---
-function showNotification(title, message, type = 'info') {
-    const notification = document.getElementById('notification');
-    const notificationTitle = document.getElementById('notificationTitle');
-    const notificationMessage = document.getElementById('notificationMessage');
-    if (!notification || !notificationTitle || !notificationMessage) return; 
-    
-    notificationTitle.textContent = title;
-    notificationMessage.textContent = message;
-    notification.className = 'notification show ' + type;
-    const icon = notification.querySelector('.notification-icon i');
-    if (icon) {
-        icon.className = type === 'success' ? 'fas fa-check-circle' : 
-                       type === 'warning' ? 'fas fa-exclamation-triangle' : 
-                       type === 'error' ? 'fas fa-times-circle' : 
-                       'fas fa-info-circle';
+/**
+ * Логика УДАЛЕНИЯ заказа (Реализована)
+ */
+async function handleDeleteOrder(orderId) {
+    if (!confirm('ВНИМАНИЕ: Вы уверены, что хотите удалить этот заказ НАВСЕГДА?\n\nЭто действие нельзя отменить.')) {
+        return;
+    }
+
+    try {
+        await deleteOrder(orderId); // Вызов API
+        
+        showNotification('Удалено', 'Заказ успешно удален.', 'success');
+        
+        // Удаляем строку из UI
+        const row = document.getElementById(`archive-row-${orderId}`);
+        if (row) row.remove();
+
+        checkEmptyState();
+
+    } catch (error) {
+        console.error(error);
+        showNotification('Ошибка', 'Не удалось удалить заказ.', 'error');
     }
 }
 
-function closeNotification() {
-    const notification = document.getElementById('notification');
-    if (notification) { 
-        notification.classList.remove('show');
+/**
+ * Проверяет, пуста ли таблица, и показывает Empty State если нужно
+ */
+function checkEmptyState() {
+    const tableBody = document.getElementById('archiveTableBody');
+    if (tableBody && tableBody.children.length === 0) {
+        document.getElementById('archiveEmptyState').style.display = 'block';
     }
 }

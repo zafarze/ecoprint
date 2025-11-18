@@ -1,11 +1,11 @@
-// static/js/ui.js
-// (Новый файл)
+// D:\Projects\EcoPrint\static\js\ui.js
+// (ПОЛНЫЙ КОД)
 
-import { getProductCatalog, getUserCatalog, getCurrentEditingOrderId } from './state.js';
+import { getProductCatalog, getUserCatalog } from './state.js';
 import { formatDate, getDaysUntilDeadline, getStatusText } from './utils.js';
 
-// --- Поиск DOM-элементов ---
-// Мы экспортируем их, чтобы app.js мог навесить на них события
+// --- 1. Поиск DOM-элементов ---
+// Экспортируем их, чтобы app.js мог вешать события
 export const ordersTableBody = document.getElementById('ordersTableBody');
 export const emptyState = document.getElementById('emptyState');
 export const orderModal = document.getElementById('orderModal');
@@ -37,38 +37,41 @@ export const sidebar = document.querySelector(".sidebar");
 export const pageContainer = document.querySelector(".page-container");
 export const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
 
-// --- Функции UI ---
+// --- 2. Функции отрисовки (View) ---
 
 /**
- * Главная функция отрисовки. "Рисует" таблицу заказов.
+ * Главная функция отрисовки таблицы заказов.
  */
 export function renderOrders(filteredOrders) {
-    
-    // 1. Очистка таблицы
+    // Проверка на случай, если мы не на главной странице (элемента нет)
+    if (!ordersTableBody) return;
+
+    // Очистка таблицы
     ordersTableBody.innerHTML = '';
     
     if (filteredOrders.length === 0) {
-        emptyState.style.display = 'block';
+        if (emptyState) emptyState.style.display = 'block';
         return;
     }
     
-    emptyState.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
     
-    // 2. Рендеринг строк
+    // Рендеринг строк
     filteredOrders.forEach(order => {
+        // Если в заказе нет товаров (технически возможно), пропускаем или рисуем пустой
         const itemCount = order.items.length;
         if (itemCount === 0) return; 
 
-        // Сортировка
+        // Сортировка товаров внутри заказа: Не готов -> В процессе -> Готов
         const sortedItems = [...order.items].sort((a, b) => {
             const statusOrder = { 'not-ready': 0, 'in-progress': 1, 'ready': 2 };
             return statusOrder[a.status] - statusOrder[b.status];
         });
 
-        // Ячейки
+        // HTML для статуса заказа
         const orderStatusHtml = `<span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>`;
         
-        // --- 👇 ИЗМЕНЕНИЕ: Добавлена кнопка Архива ---
+        // HTML для кнопок действий (Редактировать, Архив, Удалить)
         const actionsHtml = `
             <div class="actions">
                 <button class="icon-btn edit-btn" data-id="${order.id}" title="Редактировать">
@@ -81,27 +84,28 @@ export function renderOrders(filteredOrders) {
                     <i class="fas fa-trash"></i>
                 </button>
             </div>`;
-        // --- 👆 КОНЕЦ ИЗМЕНЕНИЯ ---
 
-        // Ячейка "Товары"
+        // Генерация списка товаров
         let itemsContainerHtml = '<div class="items-container">';
         
         sortedItems.forEach((item, index) => {
             let urgencyClass = '';
             const daysLeft = getDaysUntilDeadline(item.deadline);
+            
+            // Подсветка срочности (только если не готово)
             if (item.status !== 'ready') {
-                if (daysLeft === 0) urgencyClass = 'item-very-urgent';
-                else if (daysLeft === 1) urgencyClass = 'item-urgent';
+                if (daysLeft <= 0) urgencyClass = 'item-very-urgent'; // Сегодня или просрочено
+                else if (daysLeft === 1) urgencyClass = 'item-urgent'; // Завтра
             }
 
+            // Формирование имени ответственного
             const responsibleUser = item.responsible_user;
             const respName = (responsibleUser) 
                 ? (responsibleUser.first_name || responsibleUser.last_name ? `${responsibleUser.first_name} ${responsibleUser.last_name}`.trim() : responsibleUser.username) 
-                : 'N/A';
+                : 'Не назначен';
             
             itemsContainerHtml += `
                 <div class="item-row-card ${urgencyClass}">
-                
                     <span class="item-number">${index + 1}</span>
                     
                     <div class="item-content-row">
@@ -121,19 +125,19 @@ export function renderOrders(filteredOrders) {
                           data-order-id="${order.id}"
                           data-item-id="${item.id}" 
                           data-item-name="${item.name}" 
-                          data-item-quantity="${item.quantity}">
+                          data-item-quantity="${item.quantity}"
+                          title="Нажмите, чтобы изменить статус">
                         ${getStatusText(item.status)}
                     </span>
                     
                     ${item.comment ? `<div class="item-comment-display"><i class="fas fa-comment-alt"></i><div>${item.comment}</div></div>` : ''}
-                    
                 </div>
             `;
         });
         
         itemsContainerHtml += '</div>';
 
-        // Собираем ГЛАВНУЮ строку `<tr>`
+        // Собираем строку таблицы
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${order.id}</td>
@@ -147,7 +151,7 @@ export function renderOrders(filteredOrders) {
 }
 
 /**
- * Обновляет активную быструю кнопку фильтра.
+ * Обновляет визуальное состояние кнопок быстрых фильтров.
  */
 export function updateQuickFilterButtons(activeFilter) {
     document.querySelectorAll('.quick-filter-btn').forEach(btn => {
@@ -155,13 +159,15 @@ export function updateQuickFilterButtons(activeFilter) {
     });
     
     if (activeFilter === 'ready') {
-        if (showReadyBtn) showReadyBtn.classList.add('active');
+        showReadyBtn?.classList.add('active');
     } else if (activeFilter === 'not-ready') {
-        if (showNotReadyBtn) showNotReadyBtn.classList.add('active');
+        showNotReadyBtn?.classList.add('active');
     } else if (activeFilter === 'all') {
-        if (resetFiltersBtn) resetFiltersBtn.classList.add('active');
+        resetFiltersBtn?.classList.add('active');
     }
 }
+
+// --- 3. Функции Модального окна ---
 
 /**
  * Открывает модальное окно (для создания или редактирования).
@@ -170,12 +176,13 @@ export function openOrderModal(orderToEdit = null) {
     const today = new Date().toISOString().split('T')[0];
     
     if (orderToEdit) {
-        // Редактирование
+        // --- РЕЖИМ РЕДАКТИРОВАНИЯ ---
         modalTitle.textContent = 'Редактировать заказ';
         document.getElementById('clientName').value = orderToEdit.client;
         
         itemsFormContainer.innerHTML = '';
         orderToEdit.items.forEach((item, index) => {
+            // Получаем ID ответственного или null
             const respId = item.responsible_user ? item.responsible_user.id : null;
             
             const itemCard = createItemFormCard(
@@ -185,16 +192,17 @@ export function openOrderModal(orderToEdit = null) {
             itemsFormContainer.appendChild(itemCard);
         });
     } else {
-        // Создание
+        // --- РЕЖИМ СОЗДАНИЯ ---
         modalTitle.textContent = 'Новый заказ';
         orderForm.reset();
         itemsFormContainer.innerHTML = '';
         
+        // Берем ID текущего юзера из глобальной переменной (в шаблоне HTML)
         const currentUserId = (typeof CURRENT_USER_ID !== 'undefined') ? CURRENT_USER_ID : null;
         
         const firstItem = createItemFormCard(
             '', 1, 'not-ready', today, 1,
-            currentUserId, // Автоматически ставим создателя
+            currentUserId, // По умолчанию ответственный - создатель
             '' 
         );
         itemsFormContainer.appendChild(firstItem);
@@ -212,7 +220,7 @@ export function closeOrderModal() {
 }
 
 /**
- * Добавляет новую карточку товара в модальное окно.
+ * Добавляет новую пустую строку товара в модальное окно.
  */
 export function addItemRow() {
     const itemCount = itemsFormContainer.children.length + 1;
@@ -221,21 +229,23 @@ export function addItemRow() {
     
     const itemCard = createItemFormCard(
         '', 1, 'not-ready', today, itemCount,
-        currentUserId, // Автоматически ставим создателя
+        currentUserId, 
         '' 
     );
     itemsFormContainer.appendChild(itemCard);
     updateOrderSummary();
+    updateItemNumbers(); // Обновляем нумерацию на всякий случай
 }
 
 /**
- * Создает HTML-узел (карточку) для одного товара в модальном окне.
+ * Создает DOM-элемент карточки товара для формы.
  */
 function createItemFormCard(name, quantity, status, deadline, itemNumber, responsibleUserId, comment = '') {
+    // Клонируем шаблон
     const template = document.getElementById('itemFormTemplate');
     const itemCard = template.content.cloneNode(true).firstElementChild;
     
-    // Находим элементы
+    // Находим элементы внутри карточки
     const badge = itemCard.querySelector('.item-number');
     const productInput = itemCard.querySelector('.product-name-input');
     const productTypeBtn = itemCard.querySelector('.product-type-btn');
@@ -247,27 +257,33 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
     const itemResponsibleSelect = itemCard.querySelector('.item-responsible-user');
     const commentInput = itemCard.querySelector('.item-comment'); 
 
+    // Устанавливаем значения
     badge.textContent = itemNumber;
     productInput.value = name;
 
-    // Заполняем список подсказок
+    // 1. Автозаполнение (Товары)
     const productCatalog = getProductCatalog();
-    productCatalog.forEach(product => {
-        const suggestion = document.createElement('div');
-        suggestion.className = 'product-suggestion';
-        suggestion.innerHTML = `<i class="${product.icon || 'fas fa-box'}"></i><span>${product.name}</span>`;
-        
-        suggestion.addEventListener('click', () => {
-            productInput.value = product.name;
-            productSuggestions.style.display = 'none';
-            productTypeBtn.innerHTML = '<i class="fas fa-list"></i> Выбрать из списка';
+    if (productCatalog && productCatalog.length > 0) {
+        productCatalog.forEach(product => {
+            const suggestion = document.createElement('div');
+            suggestion.className = 'product-suggestion';
+            suggestion.innerHTML = `<i class="${product.icon || 'fas fa-box'}"></i><span>${product.name}</span>`;
+            
+            suggestion.addEventListener('click', () => {
+                productInput.value = product.name;
+                productSuggestions.style.display = 'none';
+                productTypeBtn.innerHTML = '<i class="fas fa-list"></i> Выбрать из списка';
+            });
+            productSuggestions.appendChild(suggestion);
         });
-        productSuggestions.appendChild(suggestion);
-    });
+    } else {
+        // Если каталог пуст, скрываем кнопку выбора
+        productTypeBtn.style.display = 'none';
+    }
 
-    // Кнопка "Выбрать из списка"
+    // Логика кнопки "Выбрать из списка"
     productTypeBtn.addEventListener('click', () => {
-        if (productSuggestions.style.display === 'none') {
+        if (productSuggestions.style.display === 'none' || !productSuggestions.style.display) {
             productSuggestions.style.display = 'grid';
             productTypeBtn.innerHTML = '<i class="fas fa-times"></i> Скрыть список';
         } else {
@@ -276,28 +292,40 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
         }
     });
 
-    // Заполняем "Создателя"
+    // 2. Выбор ответственного (Users)
     const userCatalog = getUserCatalog();
-    itemResponsibleSelect.innerHTML = ''; // Очищаем "-- Загрузка... --"
-    userCatalog.forEach(user => {
-        const option = document.createElement('option');
-        option.value = user.id;
-        
-        const displayName = (user.first_name || user.last_name) 
-            ? `${user.first_name} ${user.last_name}`.trim() 
-            : user.username;
-        option.textContent = displayName;
-        
-        if (user.id === responsibleUserId) {
-            option.selected = true;
-        }
-        itemResponsibleSelect.appendChild(option);
-    });
+    itemResponsibleSelect.innerHTML = ''; // Очищаем плейсхолдер
     
-    itemResponsibleSelect.value = responsibleUserId;
+    if (userCatalog && userCatalog.length > 0) {
+        userCatalog.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            const displayName = (user.first_name || user.last_name) 
+                ? `${user.first_name} ${user.last_name}`.trim() 
+                : user.username;
+            option.textContent = displayName;
+            
+            if (user.id === responsibleUserId) {
+                option.selected = true;
+            }
+            itemResponsibleSelect.appendChild(option);
+        });
+    } else {
+        const option = document.createElement('option');
+        option.textContent = "Нет пользователей";
+        itemResponsibleSelect.appendChild(option);
+    }
+    
+    // Устанавливаем текущее значение
+    if (responsibleUserId) {
+        itemResponsibleSelect.value = responsibleUserId;
+    }
+    
+    // ⚠️ БЛОКИРОВКА: Сейчас менять ответственного нельзя. 
+    // Если вы хотите разрешить менять исполнителя, удалите строку ниже:
     itemResponsibleSelect.disabled = true; 
     
-    // Заполняем остальные поля
+    // Остальные поля
     quantityInput.value = quantity;
     deadlineInput.value = deadline;
     statusSelect.value = status;
@@ -306,11 +334,12 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
     const today = new Date().toISOString().split('T')[0];
     deadlineInput.setAttribute('min', today);
 
+    // Показываем кнопку удаления, если товаров > 1
     if (itemNumber > 1) {
         removeBtn.style.display = 'block';
     }
 
-    // Вешаем обработчики (только для модального окна)
+    // События
     statusSelect.addEventListener('change', updateOrderSummary);
     
     removeBtn.addEventListener('click', () => {
@@ -327,7 +356,7 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
 }
 
 /**
- * Обновляет номера товаров (1, 2, 3...) в модальном окне.
+ * Пересчитывает порядковые номера товаров в форме (1, 2, 3...).
  */
 export function updateItemNumbers() {
     const itemCards = itemsFormContainer.querySelectorAll('.item-form-card');
@@ -338,7 +367,7 @@ export function updateItemNumbers() {
 }
 
 /**
- * Обновляет счетчики "Товаров: X" / "Готово: Y" в модальном окне.
+ * Обновляет сводку (Всего / Готово) внизу формы.
  */
 export function updateOrderSummary() {
     const itemCards = itemsFormContainer.querySelectorAll('.item-form-card');
@@ -356,8 +385,13 @@ export function updateOrderSummary() {
     readyCount.textContent = readyItems;
 }
 
+// --- 4. Уведомления (Toast) ---
+
 /**
  * Показывает всплывающее уведомление.
+ * @param {string} title - Заголовок
+ * @param {string} message - Текст
+ * @param {string} type - 'info', 'success', 'warning', 'error'
  */
 export function showNotification(title, message, type = 'info') {
     if (!notificationTitle || !notification) return; 
@@ -365,6 +399,7 @@ export function showNotification(title, message, type = 'info') {
     notificationTitle.textContent = title;
     notificationMessage.textContent = message;
     notification.className = 'notification show ' + type;
+    
     const icon = notification.querySelector('.notification-icon i');
     if (icon) {
         icon.className = type === 'success' ? 'fas fa-check-circle' : 
@@ -372,10 +407,15 @@ export function showNotification(title, message, type = 'info') {
                        type === 'error' ? 'fas fa-times-circle' : 
                        'fas fa-info-circle';
     }
+    
+    // Автоматическое закрытие через 5 секунд
+    setTimeout(() => {
+        closeNotification();
+    }, 5000);
 }
 
 /**
- * Закрывает всплывающее уведомление.
+ * Закрывает уведомление.
  */
 export function closeNotification() {
     if (notification) { 

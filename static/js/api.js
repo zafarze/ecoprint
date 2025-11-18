@@ -1,35 +1,28 @@
 // static/js/api.js
-// (ИСПРАВЛЕННЫЙ)
+// (ВЕРСИЯ БЕЗ КЭША ДЛЯ ЗАКАЗОВ)
 
 import { csrftoken } from './utils.js';
 
 // --- Функции кэширования ---
 
-/**
- * Очищает ВЕСЬ кэш данных.
- * Вызывается, когда мы (C)reate, (U)pdate, (D)elete что-либо.
- */
 export function invalidateCache() {
-    console.log("Кэш API очищен.");
-    localStorage.removeItem('ecoPrint-orders');
+    // Очищаем только каталоги, если нужно, 
+    // но заказы мы теперь вообще не будем кэшировать.
     localStorage.removeItem('ecoPrint-productCatalog');
     localStorage.removeItem('ecoPrint-userCatalog');
 }
 
 /**
- * Пытается получить данные из кэша. Если их нет -
- * выполняет fetch, кэширует и возвращает результат.
+ * Используем ТОЛЬКО для справочников (Товары, Юзеры), 
+ * которые меняются редко.
  */
 async function getCachedOrFetch(key, fetchUrl) {
     const cachedData = localStorage.getItem(key);
     
     if (cachedData) {
-        console.log(`Загружено из кэша: ${key}`);
         return JSON.parse(cachedData);
     } 
     
-    // Если в кэше нет
-    console.log(`Запрос на сервер: ${key}`);
     const response = await fetch(fetchUrl);
     if (!response.ok) {
         throw new Error(`Ошибка загрузки: ${key}`);
@@ -43,7 +36,7 @@ async function getCachedOrFetch(key, fetchUrl) {
 // --- Функции API ---
 
 /**
- * Загружает каталоги (Товары и Пользователи).
+ * Загружает каталоги (кэширует их).
  */
 export async function fetchCatalogs() {
     const products = await getCachedOrFetch('ecoPrint-productCatalog', '/api/products/');
@@ -53,11 +46,15 @@ export async function fetchCatalogs() {
 
 /**
  * Загружает список Заказов.
+ * 👇 ИЗМЕНЕНИЕ: Мы убрали кэширование. Теперь всегда свежие данные.
  */
 export async function fetchOrders() {
-    // 👇 Мы добавили фильтр, чтобы не загружать
-    // архивированные заказы на главную страницу
-    return await getCachedOrFetch('ecoPrint-orders', '/api/orders/?is_archived=false');
+    // Всегда делаем запрос к серверу
+    const response = await fetch('/api/orders/?is_archived=false');
+    if (!response.ok) {
+        throw new Error('Ошибка загрузки заказов');
+    }
+    return await response.json();
 }
 
 /**
@@ -72,9 +69,6 @@ export async function saveOrder(orderData, orderId = null) {
         method = 'PUT';
     }
     
-    // Очищаем кэш ПЕРЕД запросом
-    invalidateCache();
-
     const response = await fetch(url, {
         method: method,
         headers: {
@@ -96,9 +90,6 @@ export async function saveOrder(orderData, orderId = null) {
  * Удаляет заказ.
  */
 export async function deleteOrder(orderId) {
-    // Очищаем кэш ПЕРЕД запросом
-    invalidateCache();
-    
     const response = await fetch(`/api/orders/${orderId}/`, {
         method: 'DELETE',
         headers: {
@@ -109,18 +100,14 @@ export async function deleteOrder(orderId) {
     if (!response.ok && response.status !== 204) {
         throw new Error('Ошибка удаления на сервере');
     }
-    // При успехе (204 No Content) ничего не возвращаем
 }
 
 /**
- * Отправляет команду архивации заказа.
+ * Архивирует заказ.
  */
 export async function archiveOrder(orderId) {
-    // Очищаем кэш ПЕРЕД запросом
-    invalidateCache();
-    
     const response = await fetch(`/api/orders/${orderId}/archive/`, {
-        method: 'POST', // Используем POST, как указано в @action
+        method: 'POST',
         headers: {
             'X-CSRFToken': csrftoken,
             'Content-Type': 'application/json',
@@ -133,16 +120,12 @@ export async function archiveOrder(orderId) {
     return await response.json();
 }
 
-// --- 👇 ВОТ ИСПРАВЛЕНИЕ (НОВАЯ ФУНКЦИЯ) ---
 /**
- * Отправляет команду РАЗАРХИВАЦИИ заказа.
+ * Разархивирует заказ.
  */
 export async function unarchiveOrder(orderId) {
-    // Очищаем кэш (если заказ вернется, он должен появиться на главной)
-    invalidateCache(); 
-    
     const response = await fetch(`/api/orders/${orderId}/unarchive/`, {
-        method: 'POST', // Используем POST, как указано в @action
+        method: 'POST',
         headers: {
             'X-CSRFToken': csrftoken,
             'Content-Type': 'application/json',
@@ -154,4 +137,3 @@ export async function unarchiveOrder(orderId) {
     }
     return await response.json();
 }
-// --- 👆 КОНЕЦ ИСПРАВЛЕНИЯ ---

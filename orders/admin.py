@@ -3,38 +3,75 @@
 from django.contrib import admin
 from .models import Order, Item, Profile, Product, CompanySettings, TelegramSettings
 
-# Эта строка "показывает" вашу модель Item внутри страницы заказа
+# --- Настройка отображения товаров внутри заказа ---
 class ItemInline(admin.TabularInline):
     model = Item
-    extra = 1 # Показывает 1 пустой слот для нового товара
+    extra = 0 # Ставим 0, чтобы не висела пустая строка, если она не нужна (можно нажать "Добавить")
     
-    # --- 👇 ИЗМЕНЕНИЕ: Добавляем 'responsible_user' сюда ---
-    # Позволяет быстро назначить ответственного прямо в заказе
-    fields = ('name', 'quantity', 'deadline', 'status', 'responsible_user')
-    autocomplete_fields = ['responsible_user'] # Удобный поиск пользователя
+    # Поля, которые видны в таблице товаров внутри заказа
+    fields = ('name', 'quantity', 'deadline', 'status', 'responsible_user', 'is_archived')
+    
+    # Включает выпадающий список с поиском для выбора ответственного.
+    # ВАЖНО: Работает, так как стандартная модель User имеет search_fields.
+    autocomplete_fields = ['responsible_user'] 
 
+# --- Админка для Заказов ---
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    # --- 👇 ИЗМЕНЕНИЕ: Убрали 'responsible_user' отсюда ---
     list_display = ('id', 'client', 'status', 'created_at')
-    
-    # --- 👇 ИЗМЕНЕНИЕ: Убрали 'responsible_user' отсюда ---
     list_filter = ('status', 'created_at') 
     
-    search_fields = ('client',)
-    inlines = [ItemInline] # Добавляет товары прямо на страницу заказа
+    # Добавили поиск по ID заказа, это очень удобно
+    search_fields = ('client', 'id')
+    
+    # Подключаем товары внутрь страницы заказа
+    inlines = [ItemInline] 
 
-# --- (Мы также должны зарегистрировать наши новые модели, чтобы видеть их в админке) ---
-
+# --- Админка для Товаров (Ассортимента) ---
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'icon')
     list_filter = ('category',)
     search_fields = ('name',)
 
-# (Регистрируем Profile, чтобы он отображался)
-admin.site.register(Profile)
+# --- Админка для Профилей ---
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    # Теперь мы видим, чей это профиль и есть ли аватар
+    list_display = ('user', 'avatar_preview')
+    search_fields = ('user__username', 'user__email')
 
-# (Регистрируем Singleton-модели, чтобы их можно было редактировать)
-admin.site.register(CompanySettings)
-admin.site.register(TelegramSettings)
+    # Небольшой метод для отображения текста, есть ли аватар
+    def avatar_preview(self, obj):
+        if obj.avatar:
+            return "Да"
+        return "Нет"
+    avatar_preview.short_description = "Аватар"
+
+# --- Базовый класс для "Одиночных" настроек ---
+class SingletonAdmin(admin.ModelAdmin):
+    """
+    Скрывает кнопку 'Добавить', если объект уже существует.
+    Нужно для настроек компании и Telegram, чтобы не создавать дубли.
+    """
+    def has_add_permission(self, request):
+        if self.model.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+# --- Админка Настроек Компании ---
+@admin.register(CompanySettings)
+class CompanySettingsAdmin(SingletonAdmin):
+    pass
+
+# --- Админка Настроек Telegram ---
+@admin.register(TelegramSettings)
+class TelegramSettingsAdmin(SingletonAdmin):
+    # Скрываем токен в списке, показываем только Chat ID для безопасности
+    list_display = ('chat_id', 'bot_token_masked')
+
+    def bot_token_masked(self, obj):
+        if obj.bot_token:
+            return "******" + obj.bot_token[-4:]
+        return "Не задан"
+    bot_token_masked.short_description = "Токен"

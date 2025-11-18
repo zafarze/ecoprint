@@ -1,52 +1,74 @@
 // static/js/app.js
-// (ОБНОВЛЕННЫЙ)
+// (ВЕРСИЯ С МГНОВЕННЫМ ОБНОВЛЕНИЕМ - 1 сек)
 
-// --- Импорты Модулей ---
 import * as state from './state.js';
 import * as api from './api.js';
 import * as ui from './ui.js';
 import { getDaysUntilDeadline, playNotificationSound } from './utils.js';
 
-// --- Глобальные настройки (из base.html) ---
 const soundEnabled = window.USER_SETTINGS.soundEnabled;
 const popupEnabled = window.USER_SETTINGS.popupEnabled;
 const dayBeforeEnabled = window.USER_SETTINGS.dayBeforeEnabled;
 
+// Флаг: если открыто окно, мы не обновляем таблицу, чтобы не сбить фокус ввода
+let isModalOpen = false;
 
-// --- Инициализация ---
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
+    
+    // 👇 ЗАПУСКАЕМ БЫСТРЫЙ ЦИКЛ ОБНОВЛЕНИЯ
+    startAutoRefreshLoop();
 });
 
 /**
- * Главная функция инициализации.
- * Загружает данные (из кэша или API) и отрисовывает UI.
+ * Умный цикл обновления.
+ * Используем setTimeout вместо setInterval, чтобы запросы не наслаивались друг на друга
+ * при медленном интернете.
  */
+async function startAutoRefreshLoop() {
+    // 1. Если модальное окно закрыто - обновляем данные
+    if (!isModalOpen) {
+        try {
+            // Загружаем заказы "тихо" (без блокировки экрана)
+            const orders = await api.fetchOrders();
+            
+            // Сравниваем данные (упрощенно): если длина изменилась или статусы
+            // Для простоты просто обновляем состояние.
+            // React делает это эффективнее, но для JS так тоже нормально.
+            state.setOrders(orders);
+            handleRenderOrders();
+            
+        } catch (e) {
+            // Ошибки в консоль, чтобы не пугать юзера
+            console.warn("Auto-refresh skipped:", e);
+        }
+    }
+
+    // 2. Запускаем следующий цикл через 1 секунду (1000 мс)
+    // Это создаст эффект "реального времени"
+    setTimeout(startAutoRefreshLoop, 1000);
+}
+
 async function initApp() {
     try {
-        // 1. Загружаем данные
         const [orders, catalogs] = await Promise.all([
             api.fetchOrders(),
             api.fetchCatalogs()
         ]);
         
-        // 2. Сохраняем в состояние
         state.setOrders(orders);
         state.setProductCatalog(catalogs.products);
         state.setUserCatalog(catalogs.users);
         
-        // 3. Отрисовываем
-        handleRenderOrders(); // Отрисовываем на основе фильтров
+        handleRenderOrders();
         checkUrgentOrders();
         
     } catch (error) {
         console.error('Ошибка инициализации:', error);
-        ui.showNotification('Ошибка', 'Не удалось загрузить данные с сервера', 'error');
-        api.invalidateCache(); // Очищаем "плохой" кэш
+        ui.showNotification('Ошибка', 'Не удалось загрузить данные', 'error');
     }
     
-    // Установка 'min' для даты
     const today = new Date().toISOString().split('T')[0];
     document.querySelectorAll('input[type="date"]').forEach(input => {
         input.setAttribute('min', today);
@@ -55,23 +77,28 @@ async function initApp() {
     resetNotificationTracking();
 }
 
-/**
- * Настраивает обработчики событий ТОЛЬКО для app.js (главная страница).
- */
 function setupEventListeners() {
-    // Модальное окно
     ui.addOrderBtn?.addEventListener('click', () => {
         state.setCurrentEditingOrderId(null);
         ui.openOrderModal();
+        isModalOpen = true; // БЛОКИРУЕМ обновление
     });
-    ui.closeModalBtn?.addEventListener('click', ui.closeOrderModal);
-    ui.cancelBtn?.addEventListener('click', ui.closeOrderModal);
+    
+    ui.closeModalBtn?.addEventListener('click', () => {
+        ui.closeOrderModal();
+        isModalOpen = false; // РАЗРЕШАЕМ обновление
+    });
+    ui.cancelBtn?.addEventListener('click', () => {
+        ui.closeOrderModal();
+        isModalOpen = false;
+    });
+    
     ui.saveBtn?.addEventListener('click', handleSaveOrder);
     ui.orderForm?.addEventListener('submit', (e) => { e.preventDefault(); handleSaveOrder(); });
     ui.addItemBtn?.addEventListener('click', ui.addItemRow);
 
-    // Фильтры
     ui.syncBtn?.addEventListener('click', handleSync);
+    
     ui.showReadyBtn?.addEventListener('click', () => {
         ui.statusFilter.value = 'ready';
         handleRenderOrders();
@@ -96,31 +123,25 @@ function setupEventListeners() {
     });
     ui.urgencyFilter?.addEventListener('change', handleRenderOrders);
 
-    // Уведомления
     ui.notificationCloseBtn?.addEventListener('click', ui.closeNotification);
-
-    // --- (ВАЖНО) Event Delegation для таблицы ---
-    // Один обработчик на всю таблицу
+    
+    // Используем один обработчик на таблицу (делегирование)
     ui.ordersTableBody?.addEventListener('click', handleTableClick);
 
-    // Периодическая проверка сроков
-    setInterval(checkUrgentOrders, 300000); // Каждые 5 минут
+    // Проверка сроков каждые 5 минут (не путать с обновлением таблицы)
+    setInterval(checkUrgentOrders, 300000); 
 }
 
-
-// --- Обработчики (Handlers) ---
-
-/**
- * Собирает данные из фильтров и вызывает отрисовку.
- */
 function handleRenderOrders() {
     const orders = state.getOrders();
+    // Если orders еще не загрузились (null/undefined), выходим
+    if (!orders) return;
+
     const searchTerm = ui.searchInput.value.toLowerCase();
     const statusValue = ui.statusFilter.value;
     const urgencyValue = ui.urgencyFilter.value;
     
     const filteredOrders = orders.filter(order => {
-        // Логика фильтрации
         const matchesSearch = searchTerm === '' || 
             order.client.toLowerCase().includes(searchTerm) ||
             order.items.some(item => item.name.toLowerCase().includes(searchTerm));
@@ -140,18 +161,13 @@ function handleRenderOrders() {
                 return false;
             });
         }
-        
         return matchesSearch && matchesStatus && matchesUrgency;
     });
     
     ui.renderOrders(filteredOrders);
 }
 
-/**
- * Обрабатывает клики внутри таблицы (Редакт., Удалить, Статус).
- */
 function handleTableClick(e) {
-    // 1. Клик на Редактирование
     const editBtn = e.target.closest('.edit-btn');
     if (editBtn) {
         const orderId = parseInt(editBtn.dataset.id);
@@ -159,16 +175,13 @@ function handleTableClick(e) {
         return;
     }
     
-    // --- 👇 НОВЫЙ БЛОК: Клик на Архив ---
     const archiveBtn = e.target.closest('.archive-btn');
     if (archiveBtn) {
         const orderId = parseInt(archiveBtn.dataset.id);
         handleArchiveOrder(orderId);
         return;
     }
-    // --- 👆 КОНЕЦ НОВОГО БЛОКА ---
 
-    // 2. Клик на Удаление
     const deleteBtn = e.target.closest('.delete-btn');
     if (deleteBtn) {
         const orderId = parseInt(deleteBtn.dataset.id);
@@ -176,9 +189,9 @@ function handleTableClick(e) {
         return;
     }
 
-    // 3. Клик на Статус
     const statusSpan = e.target.closest('.item-status');
     if (statusSpan) {
+        // Блокируем повторные клики, если нужно, или просто обрабатываем
         const orderId = parseInt(statusSpan.dataset.orderId);
         const itemId = statusSpan.dataset.itemId ? parseInt(statusSpan.dataset.itemId) : null;
         const itemName = statusSpan.dataset.itemName;
@@ -189,28 +202,19 @@ function handleTableClick(e) {
     }
 }
 
-/**
- * Принудительная синхронизация (кнопка "Обновить").
- */
 async function handleSync() {
-    api.invalidateCache();
-    ui.showNotification('Синхронизация', 'Данные обновляются с сервера...', 'info');
+    ui.showNotification('Синхронизация', 'Данные обновляются...', 'info');
     await initApp();
     ui.showNotification('Успешно', 'Данные обновлены', 'success');
 }
 
-/**
- * Сохранение (Создание/Редактирование)
- */
 async function handleSaveOrder() {
-    // 1. Валидация
     const clientName = document.getElementById('clientName').value;
     if (!clientName) {
         ui.showNotification('Ошибка', 'Укажите клиента', 'error');
         return;
     }
     
-    // 2. Сборка данных
     const items = [];
     const itemCards = ui.itemsFormContainer.querySelectorAll('.item-form-card');
     let allFieldsValid = true;
@@ -245,41 +249,35 @@ async function handleSaveOrder() {
     
     const orderId = state.getCurrentEditingOrderId();
 
-    // 3. Отправка в API
     try {
+        // Отправляем на сервер
         await api.saveOrder(orderData, orderId);
         
-        // 4. Обновление UI
         ui.closeOrderModal();
-        await initApp(); // Перезагружаем все (т.к. кэш был очищен)
+        isModalOpen = false; 
+        
+        // Сразу же обновляем данные, чтобы увидеть свой результат
+        await initApp();
         
         ui.showNotification('Успешно', orderId ? 'Заказ обновлен' : 'Заказ создан', 'success');
-        
     } catch (error) {
         ui.showNotification('Ошибка', 'Не удалось сохранить заказ.', 'error');
     }
 }
 
-/**
- * Редактирование
- */
 function handleEditOrder(orderId) {
     const order = state.getOrders().find(o => o.id === orderId);
     if (order) {
         state.setCurrentEditingOrderId(orderId);
         ui.openOrderModal(order);
+        isModalOpen = true;
     }
 }
 
-/**
- * Удаление
- */
 async function handleDeleteOrder(orderId) {
     if (confirm('Вы уверены, что хотите удалить этот заказ?')) {
         try {
             await api.deleteOrder(orderId);
-            
-            // Обновляем UI (initApp перезагрузит данные)
             await initApp(); 
             ui.showNotification('Успешно', 'Заказ удален', 'success');
         } catch (error) {
@@ -288,16 +286,10 @@ async function handleDeleteOrder(orderId) {
     }
 }
 
-// --- 👇 НОВАЯ ФУНКЦИЯ ---
-/**
- * Архивация (по клику на кнопку)
- */
 async function handleArchiveOrder(orderId) {
-    if (confirm('Вы уверены, что хотите архивировать этот заказ?\n\nОн исчезнет с главной страницы и переместится в "Архив".')) {
+    if (confirm('Вы уверены, что хотите архивировать этот заказ?')) {
         try {
             await api.archiveOrder(orderId);
-            
-            // Обновляем UI (initApp перезагрузит данные, и заказ исчезнет)
             await initApp(); 
             ui.showNotification('Успешно', 'Заказ отправлен в архив', 'success');
         } catch (error) {
@@ -305,30 +297,29 @@ async function handleArchiveOrder(orderId) {
         }
     }
 }
-// --- 👆 КОНЕЦ НОВОЙ ФУНКЦИИ ---
 
-/**
- * Смена статуса товара (по клику)
- */
 async function handleToggleItemStatus(orderId, itemId, itemName, itemQuantity) {
     const order = state.getOrders().find(o => o.id === orderId);
     if (!order) return;
 
-    // Ищем товар (по ID если есть, иначе по связке имя+кол-во)
     const item = itemId 
         ? order.items.find(i => i.id === itemId)
         : order.items.find(i => i.name === itemName && i.quantity === itemQuantity);
     
     if (!item) return;
     
-    // 1. Логика смены статуса
+    // 1. Оптимистичное обновление (меняем в UI сразу для скорости)
+    const oldStatus = item.status;
     if (item.status === 'not-ready') item.status = 'in-progress';
     else if (item.status === 'in-progress') item.status = 'ready';
     else item.status = 'not-ready';
-    
+
+    // Перерисовываем таблицу с новым статусом немедленно
+    handleRenderOrders();
+
     if (soundEnabled) playNotificationSound();
 
-    // 2. Собираем данные для API
+    // 2. Готовим данные для отправки
     const itemsForApi = order.items.map(i => ({
         name: i.name,
         quantity: i.quantity,
@@ -343,19 +334,20 @@ async function handleToggleItemStatus(orderId, itemId, itemName, itemQuantity) {
         items_write: itemsForApi
     };
 
-    // 3. Отправка в API
     try {
+        // 3. Отправляем на сервер
         await api.saveOrder(orderData, orderId);
-        await initApp(); // Перезагрузит и перерисует
+        
+        // На этом этапе другие компьютеры (через 1 сек) уже увидят это изменение,
+        // потому что мы сохранили его в БД.
         
     } catch (error) {
+        // Если ошибка - откатываем назад
+        item.status = oldStatus;
+        handleRenderOrders();
         ui.showNotification('Ошибка', 'Не удалось обновить статус', 'error');
-        await initApp();
     }
 }
-
-
-// --- Уведомления о сроках ---
 
 function checkUrgentOrders() {
     const today = new Date();
@@ -366,6 +358,7 @@ function checkUrgentOrders() {
     let urgentOrders = [];
     const notificationSet = state.getNotificationSet();
     const orders = state.getOrders();
+    if (!orders) return;
     
     orders.forEach(order => {
         order.items.forEach(item => {
@@ -399,9 +392,6 @@ function checkUrgentOrders() {
     }
 }
 
-/**
- * Сбрасывает список "уже показанных" уведомлений в полночь.
- */
 function resetNotificationTracking() {
     const now = new Date();
     const tomorrow = new Date(now);
@@ -411,6 +401,6 @@ function resetNotificationTracking() {
     
     setTimeout(() => {
         state.clearNotificationSet();
-        resetNotificationTracking(); // Запускаем рекурсивно
+        resetNotificationTracking(); 
     }, msUntilMidnight);
 }
