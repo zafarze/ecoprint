@@ -435,21 +435,225 @@ tr:hover {
     display: none; /* Скрываем блок с деталями, т.к. в новом дизайне их нет */
 }
 
-/* Адаптация для мобильных */
-@media (max-width: 768px) {
-    .item-row {
-        flex-wrap: wrap;
-        gap: 8px;
+/* ===================================================================
+ * ===                УЛУЧШЕННАЯ МОБИЛЬНАЯ АДАПТАЦИЯ               ===
+ * ===================================================================
+ */
+
+/* 1. Затемнение фона при открытом меню (Backdrop) */
+/* Добавляем этот псевдо-элемент, чтобы затемнять контент */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 105; /* Между хедером (100) и сайдбаром (110) */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+/* Когда меню открыто (класс .sidebar-open добавляем через JS на body, или используем логику ниже) */
+/* В вашем JS вы вешаете класс .show на .sidebar. 
+   Чтобы сделать затемнение без JS на body, можно использовать трюк с has(), но для надежности лучше CSS ниже: */
+   
+@media (max-width: 992px) {
+    
+    /* === Сайдбар === */
+    .sidebar {
+        width: 280px; /* Чуть шире для удобства пальцем */
+        transform: translateX(-100%);
+        z-index: 1000; /* Поверх всего */
     }
     
-    .item-info {
-        flex-basis: 100%;
-        order: 2;
+    /* Когда меню открыто */
+    .sidebar.show {
+        transform: translateX(0);
+        box-shadow: 5px 0 25px rgba(0,0,0,0.2);
+    }
+
+    /* Если меню открыто, затемняем body (требует доработки JS, см. совет в конце) */
+    /* Пока оставим тень у самого сайдбара */
+
+    .page-container {
+        margin-left: 0;
+        width: 100%;
+        padding-bottom: 80px; /* Место для скролла внизу */
+    }
+
+    /* === Хедер === */
+    header {
+        padding: 10px 0;
     }
     
-    .item-status {
+    #menuToggleBtn {
+        display: inline-flex; /* Показываем гамбургер */
+    }
+    
+    /* Скрываем текст кнопок, оставляем иконки для экономии места */
+    #syncBtn .btn-text,
+    #addOrderBtn span { 
+        display: none; 
+    }
+    
+    #addOrderBtn {
+    flex-shrink: 0; /* Запрещаем кнопке сжиматься */
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 15px; /* Отступ от текста */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+    
+    #addOrderBtn i {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    /* === Таблицы (Горизонтальный скролл) === */
+    .table-card {
+        overflow-x: auto; /* Разрешаем скролл внутри карточки */
+        -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+        border-radius: 12px;
+    }
+    
+    table {
+        min-width: 800px; /* Минимальная ширина, чтобы таблица не сжималась в кашу */
+    }
+
+    /* === Модальные окна на весь экран === */
+    .modal-content {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .modal-body {
+        padding: 15px; /* Меньше отступы */
+    }
+    
+    .modal-footer {
+        padding: 15px;
+        background: white; /* Белый фон, чтобы отделить от контента */
+        border-top: 1px solid var(--border-color);
+        position: sticky;
+        bottom: 0;
+    }
+    
+    /* Кнопки в футере модалки на всю ширину */
+    .form-actions {
+        width: 100%;
+        display: flex;
+        gap: 10px;
+    }
+    .form-actions button {
+        flex: 1; /* Растягиваем кнопки поровну */
+        justify-content: center;
+    }
+}
+
+@media (max-width: 600px) {
+    /* === Для маленьких телефонов === */
+    
+    /* Убираем лишние отступы */
+    .container {
+        padding: 10px;
+    }
+    
+    .filters-header {
+        flex-direction: row; /* Оставляем в ряд */
+        justify-content: space-between;
+    }
+    
+    /* Поиск на всю ширину */
+    .search-box {
         order: 3;
-        min-width: 80px;
+        width: 100%;
+        min-width: 100%;
+        margin-top: 10px;
+    }
+    
+    .filter-row {
+        gap: 10px;
+    }
+    
+    /* Фильтры (select) на всю ширину */
+    .filter-group {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .filter-group label {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    
+    .filter-group .custom-select, 
+    .filter-group select {
+        width: 100%;
+    }
+
+    /* Быстрые фильтры (кнопки) */
+    .quick-filters {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 2 колонки */
+        gap: 8px;
+        width: 100%;
+    }
+    
+    .quick-filter-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        font-size: 12px;
+        padding: 8px;
+    }
+    
+    /* === Карточки товаров внутри заказа (Nested) === */
+    /* Превращаем грид в блочную структуру для узких экранов */
+    .item-row-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        position: relative;
+        padding-left: 50px; /* Место под номер */
+    }
+    
+    .item-row-card .item-number {
+        position: absolute;
+        left: 10px;
+        top: 15px;
+    }
+    
+    .item-content-row {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        gap: 5px;
+    }
+    
+    .item-content-row .item-quantity {
+        margin-left: 0;
+        display: inline-block;
+    }
+    
+    .item-row-card .item-status {
+        width: 100%; /* Кнопка статуса на всю ширину */
+        margin-top: 5px;
     }
 }
 
@@ -1415,21 +1619,19 @@ header {
 
 /* Превращаем заголовок фильтров во flex-контейнер */
 .filters-header {
-    /* (старые стили остаются) */
     display: flex;
-    justify-content: space-between; /* Главное правило! */
+    justify-content: space-between; /* Разносим по краям */
     align-items: center;
+    margin-bottom: 15px;
+    width: 100%;
 }
 
 /* Заголовок (иконка + текст) */
 .filters-header-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    /* (старые стили для .filters-header остаются тут) */
     font-size: 18px;
-    font-weight: 600;
-    color: var(--text-color);
+    /* Если текст слишком длинный, он не наедет на кнопку */
+    flex: 1; 
+    white-space: nowrap;
 }
 
 /* * Новый стиль для кнопки, т.к. она больше не в шапке.

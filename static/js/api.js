@@ -39,8 +39,20 @@ async function getCachedOrFetch(key, fetchUrl) {
  * Загружает каталоги (кэширует их).
  */
 export async function fetchCatalogs() {
-    const products = await getCachedOrFetch('ecoPrint-productCatalog', '/api/products/');
-    const users = await getCachedOrFetch('ecoPrint-userCatalog', '/api/users/');
+    // 1. Загружаем товары напрямую с сервера
+    const productsResponse = await fetch('/api/products/');
+    if (!productsResponse.ok) throw new Error('Ошибка загрузки товаров');
+    const products = await productsResponse.json();
+
+    // 2. Загружаем пользователей напрямую
+    const usersResponse = await fetch('/api/users/');
+    if (!usersResponse.ok) throw new Error('Ошибка загрузки пользователей');
+    const users = await usersResponse.json();
+
+    // Очищаем старый кэш, чтобы он не занимал место (опционально)
+    localStorage.removeItem('ecoPrint-productCatalog');
+    localStorage.removeItem('ecoPrint-userCatalog');
+
     return { products, users };
 }
 
@@ -135,5 +147,25 @@ export async function unarchiveOrder(orderId) {
     if (!response.ok) {
         throw new Error('Ошибка разархивации на сервере');
     }
+    return await response.json();
+}
+
+/**
+ * Запускает процесс выгрузки в Google Sheets
+ */
+export async function syncGoogleSheets() {
+    const response = await fetch('/api/sync-sheets/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        }
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Ошибка синхронизации с Google');
+    }
+    
     return await response.json();
 }

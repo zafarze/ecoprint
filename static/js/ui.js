@@ -25,6 +25,7 @@ export const saveBtn = document.getElementById('saveBtn');
 export const addItemBtn = document.getElementById('addItemBtn');
 export const syncBtn = document.getElementById('syncBtn');
 export const showReadyBtn = document.getElementById('showReadyBtn');
+export const showInProgressBtn = document.getElementById('showInProgressBtn');
 export const showNotReadyBtn = document.getElementById('showNotReadyBtn');
 export const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 export const searchInput = document.getElementById('searchInput');
@@ -43,7 +44,7 @@ export const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
  * Главная функция отрисовки таблицы заказов.
  */
 export function renderOrders(filteredOrders) {
-    // Проверка на случай, если мы не на главной странице (элемента нет)
+    // Проверка на случай, если мы не на главной странице
     if (!ordersTableBody) return;
 
     // Очистка таблицы
@@ -58,52 +59,43 @@ export function renderOrders(filteredOrders) {
     
     // Рендеринг строк
     filteredOrders.forEach(order => {
-        // Если в заказе нет товаров (технически возможно), пропускаем или рисуем пустой
         const itemCount = order.items.length;
         if (itemCount === 0) return; 
 
-        // Сортировка товаров внутри заказа: Не готов -> В процессе -> Готов
         const sortedItems = [...order.items].sort((a, b) => {
             const statusOrder = { 'not-ready': 0, 'in-progress': 1, 'ready': 2 };
             return statusOrder[a.status] - statusOrder[b.status];
         });
 
-        // HTML для статуса заказа
         const orderStatusHtml = `<span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>`;
         
-        // HTML для кнопок действий (Редактировать, Архив, Удалить)
         const actionsHtml = `
             <div class="actions">
-                <button class="icon-btn edit-btn" data-id="${order.id}" title="Редактировать">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="icon-btn archive-btn" data-id="${order.id}" title="Архивировать">
-                    <i class="fas fa-archive"></i>
-                </button>
-                <button class="icon-btn delete delete-btn" data-id="${order.id}" title="Удалить">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <button class="icon-btn edit-btn" data-id="${order.id}" title="Редактировать"><i class="fas fa-edit"></i></button>
+                <button class="icon-btn archive-btn" data-id="${order.id}" title="Архивировать"><i class="fas fa-archive"></i></button>
+                <button class="icon-btn delete delete-btn" data-id="${order.id}" title="Удалить"><i class="fas fa-trash"></i></button>
             </div>`;
 
-        // Генерация списка товаров
         let itemsContainerHtml = '<div class="items-container">';
         
         sortedItems.forEach((item, index) => {
             let urgencyClass = '';
             const daysLeft = getDaysUntilDeadline(item.deadline);
             
-            // Подсветка срочности (только если не готово)
             if (item.status !== 'ready') {
-                if (daysLeft <= 0) urgencyClass = 'item-very-urgent'; // Сегодня или просрочено
-                else if (daysLeft === 1) urgencyClass = 'item-urgent'; // Завтра
+                if (daysLeft <= 0) urgencyClass = 'item-very-urgent';
+                else if (daysLeft === 1) urgencyClass = 'item-urgent';
             }
 
-            // Формирование имени ответственного
             const responsibleUser = item.responsible_user;
             const respName = (responsibleUser) 
                 ? (responsibleUser.first_name || responsibleUser.last_name ? `${responsibleUser.first_name} ${responsibleUser.last_name}`.trim() : responsibleUser.username) 
                 : 'Не назначен';
             
+            // 👇 НОВОЕ: Форматируем дату создания заказа
+            const startDate = formatDate(order.created_at);
+            const endDate = formatDate(item.deadline);
+
             itemsContainerHtml += `
                 <div class="item-row-card ${urgencyClass}">
                     <span class="item-number">${index + 1}</span>
@@ -111,9 +103,14 @@ export function renderOrders(filteredOrders) {
                     <div class="item-content-row">
                         <span class="item-name">${item.name}</span>
                         <span class="item-quantity">${item.quantity} шт.</span>
-                        <div class="item-deadline">
-                            <i class="fas fa-calendar-alt"></i>
-                            ${formatDate(item.deadline)}
+                        
+                        <div class="item-dates-wrapper" style="display: flex; flex-direction: column; font-size: 0.85rem; line-height: 1.2; color: #555;">
+                            <div title="Дата создания">
+                                <i class="fas fa-play-circle" style="color: #9ca3af; font-size: 0.8em;"></i> ${startDate}
+                            </div>
+                            <div title="Срок сдачи" style="font-weight: 500;">
+                                <i class="fas fa-flag-checkered" style="color: #ef4444; font-size: 0.8em;"></i> ${endDate}
+                            </div>
                         </div>
                         <div class="item-creator">
                             <i class="fas fa-user"></i>
@@ -137,7 +134,6 @@ export function renderOrders(filteredOrders) {
         
         itemsContainerHtml += '</div>';
 
-        // Собираем строку таблицы
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${order.id}</td>
@@ -152,7 +148,7 @@ export function renderOrders(filteredOrders) {
 
 /**
  * Обновляет визуальное состояние кнопок быстрых фильтров.
- */
+ 
 export function updateQuickFilterButtons(activeFilter) {
     document.querySelectorAll('.quick-filter-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -160,12 +156,14 @@ export function updateQuickFilterButtons(activeFilter) {
     
     if (activeFilter === 'ready') {
         showReadyBtn?.classList.add('active');
+    } else if (activeFilter === 'in-progress') {   // 👈 ДОБАВЛЕННЫЙ БЛОК
+        showInProgressBtn?.classList.add('active'); // 👈
     } else if (activeFilter === 'not-ready') {
         showNotReadyBtn?.classList.add('active');
     } else if (activeFilter === 'all') {
         resetFiltersBtn?.classList.add('active');
     }
-}
+}*/
 
 // --- 3. Функции Модального окна ---
 

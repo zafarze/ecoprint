@@ -109,22 +109,28 @@ form button:hover {
 
 @media (max-width: 768px) {
     body {
-        /* Убираем центрирование, чтобы форма была сверху */
-        display: block; 
+        display: flex; /* Используем flex для вертикального центрирования */
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: var(--gradient); /* Убедимся, что фон есть */
     }
     
     .login-container {
+        width: 100%;
+        max-width: 400px;
         gap: 20px;
-        padding-top: 40px; /* Добавим отступ сверху */
     }
     
     form {
-        width: 100%; /* Растягиваем на всю ширину */
-        padding: 30px; /* Уменьшаем внутренние отступы */
-        box-shadow: var(--shadow-md); /* Уменьшаем тень */
+        width: 100%;
+        padding: 25px;
+        margin: 0;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
 
     .login-container .logo {
         font-size: 28px;
+        margin-bottom: 10px;
     }
 }

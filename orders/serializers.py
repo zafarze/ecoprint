@@ -1,7 +1,8 @@
-# D:\Projects\EcoPrint\orders\serializers.py (ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД)
+# D:\Projects\EcoPrint\orders\serializers.py
 
 from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
+from django.db import transaction  # 👈 Добавлено для безопасного сохранения
 from .models import Order, Item, Product
 from django.contrib.auth.models import User
 
@@ -117,62 +118,67 @@ class OrderSerializer(serializers.ModelSerializer):
     # Логика создания нового заказа (POST)
     def create(self, validated_data):
         items_data = validated_data.pop('items_write', []) 
-        order = Order.objects.create(**validated_data)
-        for item_data in items_data:
-            # При создании id в item_data игнорируется, создаются новые
-            if 'id' in item_data:
-                del item_data['id']
-            Item.objects.create(order=order, **item_data)
+        
+        with transaction.atomic():  # 👈 Транзакция: Все или ничего
+            order = Order.objects.create(**validated_data)
+            for item_data in items_data:
+                # При создании id в item_data игнорируется, создаются новые
+                if 'id' in item_data:
+                    del item_data['id']
+                Item.objects.create(order=order, **item_data)
+                
         return order
         
     # Логика обновления существующего заказа (PUT/PATCH)
-    # 👇 ИСПРАВЛЕНО: Умное обновление вместо удаления
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items_write', None) 
 
-        # 1. Обновляем поля Order
-        instance.client = validated_data.get('client', instance.client)
-        # Если статус передан явно, обновляем его, но update_status() ниже может его пересчитать
-        if 'status' in validated_data:
-             instance.status = validated_data['status']
-             
-        instance.save() 
-        
-        # 2. Обновляем Items (Умное обновление)
-        if items_data is not None:
-            keep_ids = [] # Список ID, которые нужно оставить (не удалять)
+        # 👈 Открываем транзакцию
+        with transaction.atomic():
+            
+            # 1. Обновляем поля Order
+            instance.client = validated_data.get('client', instance.client)
+            # Если статус передан явно, обновляем его
+            if 'status' in validated_data:
+                 instance.status = validated_data['status']
+            instance.save() 
+            
+            # 2. Обновляем Items (Умное обновление)
+            if items_data is not None:
+                keep_ids = [] # Список ID, которые нужно оставить (не удалять)
 
-            for item_data in items_data:
-                item_id = item_data.get('id', None)
+                for item_data in items_data:
+                    item_id = item_data.get('id', None)
 
-                if item_id:
-                    # А) Если ID есть -> Ищем существующий товар в этом заказе
-                    item_obj = Item.objects.filter(id=item_id, order=instance).first()
-                    if item_obj:
-                        # Обновляем поля найденного товара
-                        for attr, value in item_data.items():
-                            if attr != 'id': # ID менять нельзя
-                                setattr(item_obj, attr, value)
-                        item_obj.save()
-                        keep_ids.append(item_obj.id)
+                    if item_id:
+                        # А) Если ID есть -> Ищем существующий товар в этом заказе
+                        item_obj = Item.objects.filter(id=item_id, order=instance).first()
+                        if item_obj:
+                            # Обновляем поля найденного товара
+                            for attr, value in item_data.items():
+                                if attr != 'id': # ID менять нельзя
+                                    setattr(item_obj, attr, value)
+                            item_obj.save()
+                            keep_ids.append(item_obj.id)
+                        else:
+                            # Если ID пришел, но товара такого нет (или он не от этого заказа),
+                            # создаем новый, убрав ошибочный ID.
+                            if 'id' in item_data:
+                                del item_data['id']
+                            new_item = Item.objects.create(order=instance, **item_data)
+                            keep_ids.append(new_item.id)
                     else:
-                        # Если ID пришел, но товара такого нет (или он не от этого заказа),
-                        # можно либо игнорировать, либо создавать новый. 
-                        # Логичнее создать новый, убрав ошибочный ID.
-                        if 'id' in item_data:
-                            del item_data['id']
+                        # Б) Если ID нет -> Создаем новый товар
                         new_item = Item.objects.create(order=instance, **item_data)
                         keep_ids.append(new_item.id)
-                else:
-                    # Б) Если ID нет -> Создаем новый товар
-                    new_item = Item.objects.create(order=instance, **item_data)
-                    keep_ids.append(new_item.id)
+                
+                # 3. Удаляем товары, которых нет в новом списке
+                # Удаляем только НЕ архивные товары, которые не попали в keep_ids.
+                # Архивные товары не трогаем, чтобы они не исчезли, если фронтенд их не прислал.
+                instance.items.filter(is_archived=False).exclude(id__in=keep_ids).delete()
             
-            # 3. Удаляем товары, которых нет в новом списке
-            # Удаляем только НЕ архивные товары, которые не попали в keep_ids.
-            # Архивные товары не трогаем, чтобы они не исчезли, если фронтенд их не прислал.
-            instance.items.filter(is_archived=False).exclude(id__in=keep_ids).delete()
-        
-        # 4. Обновляем общий статус Order на основе новых статусов товаров
-        instance.update_status() 
+            # 4. Обновляем общий статус Order (на всякий случай)
+            instance.update_status()
+            
+        # 👈 Конец транзакции (автоматический commit)
         return instance

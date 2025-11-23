@@ -137,13 +137,17 @@
 }
 
 /* --- Адаптация для мобильных --- */
-@media (max-width: 992px) {
+@media (max-width: 768px) {
+    .current-avatar-new {
+        width: 120px;
+        height: 120px;
+    }
+    
     .profile-grid {
-        /* На планшетах - одна колонка */
-        grid-template-columns: 1fr;
+        gap: 30px; /* Больше отступ между фото и формой */
     }
     
     .profile-page-title {
-        font-size: 24px;
+        text-align: center;
     }
 }

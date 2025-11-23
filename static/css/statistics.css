@@ -1,44 +1,55 @@
-/* static/css/statistics.css */
+/* static/css/statistics.css (Mobile Optimized) */
 
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    /* minmax(250px) заменено на minmax(150px) для маленьких экранов */
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+    gap: 15px;
     margin-bottom: 20px;
 }
 
 .kpi-card {
     display: flex;
-    align-items: center;
-    gap: 20px;
+    flex-direction: column; /* Иконка сверху */
+    align-items: flex-start;
+    gap: 15px;
     background: white;
-    padding: 25px;
+    padding: 20px;
     border-radius: 12px;
     box-shadow: var(--shadow-md);
     border-left: 5px solid var(--primary-color);
+    position: relative;
+    overflow: hidden;
 }
 
+/* Делаем иконку полупрозрачной и большой на фоне (стильный эффект) */
 .kpi-icon {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    flex-shrink: 0;
+    font-size: 20px;
+    z-index: 2;
+}
+
+.kpi-content {
+    z-index: 2;
 }
 
 .kpi-content .kpi-value {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
     color: var(--text-color);
     line-height: 1.2;
+    word-break: break-word; /* Чтобы длинные числа не ломали верстку */
 }
 
 .kpi-content .kpi-label {
-    font-size: 15px;
+    font-size: 13px;
     color: var(--text-light);
+    margin-top: 5px;
 }
 
 .chart-grid {
@@ -48,12 +59,30 @@
 }
 
 .chart-container {
-    padding: 25px;
+    padding: 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
 }
 
-.chart-container h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 20px;
-    text-align: center;
+/* Адаптация графиков */
+@media (max-width: 992px) {
+    .chart-grid {
+        grid-template-columns: 1fr; /* Одна колонка */
+    }
+    
+    .chart-container {
+        height: auto;
+        min-height: 300px; /* Фиксированная высота для канваса */
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr; /* Одна колонка на совсем мелких */
+    }
+    .kpi-card {
+        flex-direction: row; /* Возвращаем в ряд для экономии высоты */
+        align-items: center;
+    }
 }
