@@ -2,10 +2,9 @@ import requests
 import threading
 from .models import TelegramSettings
 
-def _send_telegram_task(order_id, client_name, items_summary, deadline_str):
+def _send_telegram_task(order_id, client_name, items_details):
     """
-    Внутренняя функция, которая выполняется в фоне.
-    Передаем простые данные, а не объекты моделей, чтобы избежать проблем с потоками и БД.
+    Внутренняя функция отправки.
     """
     try:
         settings = TelegramSettings.load()
@@ -15,13 +14,14 @@ def _send_telegram_task(order_id, client_name, items_summary, deadline_str):
         if not bot_token or not chat_id:
             return
 
+        # Формируем красивое сообщение
         message_text = (
-            f"<b>🎉 Новый заказ! (№{order_id})</b>\n\n"
-            f"<b>Клиент:</b> {client_name}\n"
-            f"<b>Срок сдачи:</b> {deadline_str}\n\n"
-            f"<b>Состав заказа:</b>\n"
-            f"{items_summary}\n"
-            f"<i>(Сообщение от EcoPrint CRM)</i>"
+            f"<b>🔔 Новый заказ №{order_id}</b>\n"
+            f"👤 <b>Клиент:</b> {client_name}\n"
+            f"➖➖➖➖➖➖➖➖➖➖\n\n"
+            f"{items_details}"
+            f"➖➖➖➖➖➖➖➖➖➖\n"
+            f"<i>🤖 Сообщение от EcoPrint CRM</i>"
         )
         
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
@@ -33,21 +33,41 @@ def _send_telegram_task(order_id, client_name, items_summary, deadline_str):
 
 def send_telegram_notification(order):
     """
-    Запускает отправку в отдельном потоке.
+    Подготавливает данные и запускает отправку.
     """
-    # Подготавливаем данные до запуска потока
-    items_list = ""
-    for item in order.items.all():
-        items_list += f"  - {item.name} ({item.quantity} шт.)\n"
+    items_details = ""
+    
+    # 1. Получаем дату создания заказа (общая для всех товаров)
+    created_str = order.created_at.strftime('%d.%m')
+    
+    # Перебираем товары
+    for i, item in enumerate(order.items.all(), 1):
+        # 2. Получаем Дедлайн
+        deadline_str = item.deadline.strftime('%d.%m') if item.deadline else "?"
         
-    first_item = order.items.first()
-    deadline_str = "Не указан"
-    if first_item and first_item.deadline:
-        deadline_str = first_item.deadline.strftime('%d.%m.%Y')
+        # 3. Ответственный
+        resp_name = "Не назначен"
+        if item.responsible_user:
+            u = item.responsible_user
+            resp_name = f"{u.first_name} {u.last_name}".strip() or u.username
+
+        # 4. Комментарий (добавляем, только если он есть)
+        comment_text = ""
+        if item.comment:
+            comment_text = f"\n   💬 <i>{item.comment}</i>"
+
+        # 5. Собираем блок. Строка с датами выглядит как "23.11 - 25.11"
+        items_details += (
+            f"<b>{i}. {item.name}</b>\n"
+            f"   📦 Кол-во: {item.quantity} шт.\n"
+            f"   🗓 Даты: <b>{created_str} - {deadline_str}</b>\n" 
+            f"   👷 Исполнитель: {resp_name}"
+            f"{comment_text}\n\n"
+        )
 
     # Запускаем поток
     thread = threading.Thread(
         target=_send_telegram_task,
-        args=(order.id, order.client, items_list, deadline_str)
+        args=(order.id, order.client, items_details)
     )
     thread.start()

@@ -479,20 +479,17 @@ function checkUrgentOrders() {
     
     orders.forEach(order => {
         order.items.forEach(item => {
-            // Если уже готово - не беспокоим
             if (item.status === 'ready') return;
             
             const deadlineDate = new Date(item.deadline);
             deadlineDate.setHours(0, 0, 0, 0);
             
-            // Если дедлайн СЕГОДНЯ
             if (deadlineDate.getTime() === today.getTime()) {
                 if (!notificationSet.has(`today-${order.id}-${item.name}`)) {
                     urgentOrders.push({ order, item, type: 'today' });
                     notificationSet.add(`today-${order.id}-${item.name}`);
                 }
             } 
-            // Если дедлайн ЗАВТРА (и включена опция)
             else if (deadlineDate.getTime() === tomorrow.getTime() && dayBeforeEnabled) {
                 if (!notificationSet.has(`tomorrow-${order.id}-${item.name}`)) {
                     urgentOrders.push({ order, item, type: 'tomorrow' });

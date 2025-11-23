@@ -1170,7 +1170,11 @@ body::after {
     display: flex;
     align-items: center;
     gap: 15px;
-    transform: translateX(400px);
+    
+    /* 👇 ИСПРАВЛЕНИЕ: Сдвигаем на 120% от ширины самого элемента. 
+       Теперь оно гарантированно улетит за экран полностью. */
+    transform: translateX(120%); 
+    
     transition: transform 0.3s ease;
     z-index: 1001;
     max-width: 450px;
