@@ -1,12 +1,11 @@
 # D:\Projects\EcoPrint\orders\serializers.py
 
 from rest_framework import serializers
-from rest_framework.serializers import SerializerMethodField
-from django.db import transaction  # 👈 Добавлено для безопасного сохранения
-from .models import Order, Item, Product
+from django.db import transaction
+from .models import Order, Item, Product, OrderHistory # 👈 Добавили OrderHistory
 from django.contrib.auth.models import User
 
-# === Сериализаторы для каталогов (Users & Products) ===
+# === Сериализаторы для каталогов ===
 class UserSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -17,168 +16,149 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = ['id', 'name', 'category', 'icon']
 
-# === Сериализатор Товара (Item) ДЛЯ ЧТЕНИЯ (GET) ===
+# === Сериализатор Истории (НОВЫЙ) ===
+class OrderHistorySerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    created_at_formatted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderHistory
+        fields = ['user_name', 'message', 'created_at_formatted']
+
+    def get_user_name(self, obj):
+        if obj.user:
+            return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.username
+        return "Система"
+
+    def get_created_at_formatted(self, obj):
+        return obj.created_at.strftime("%d.%m.%Y %H:%M")
+
+# === Сериализатор Товара (Item) ДЛЯ ЧТЕНИЯ ===
 class ItemSerializer(serializers.ModelSerializer):
-    
-    # Включает объект пользователя при чтении
     responsible_user = UserSimpleSerializer(read_only=True)
-    
-    # Поле для записи (если нужно обновить один Item через отдельный API)
     responsible_user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), 
-        source='responsible_user', 
-        write_only=True,
-        allow_null=True 
+        queryset=User.objects.all(), source='responsible_user', write_only=True, allow_null=True
     )
 
     class Meta:
         model = Item
-        fields = [
-            'id', 
-            'name', 
-            'quantity', 
-            'status', 
-            'deadline', 
-            'comment',
-            'responsible_user',
-            'responsible_user_id',
-            'is_archived', # Для фильтрации
-            'ready_at'     # Дата завершения
-        ] 
+        fields = ['id', 'name', 'quantity', 'status', 'deadline', 'comment',
+                  'responsible_user', 'responsible_user_id', 'is_archived', 'ready_at']
 
-# === Сериализатор Товара (Item) ТОЛЬКО ДЛЯ ЗАПИСИ (POST/PUT в Order) ===
+# === Сериализатор Товара (Item) ДЛЯ ЗАПИСИ ===
 class ItemWriteSerializer(serializers.ModelSerializer):
-    # 👇 Добавили поле id, чтобы фронтенд мог присылать ID существующего товара
     id = serializers.IntegerField(required=False)
-
-    # Используем 'responsible_user_id', чтобы принимать только PK пользователя
     responsible_user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), 
-        source='responsible_user', 
-        allow_null=True,
-        required=False 
+        queryset=User.objects.all(), source='responsible_user', allow_null=True, required=False
     )
     
     class Meta:
         model = Item
-        fields = [
-            'id', # 👈 Важно: добавили id в список полей
-            'name', 
-            'quantity', 
-            'status', 
-            'deadline', 
-            'comment', 
-            'responsible_user_id'
-        ]
+        fields = ['id', 'name', 'quantity', 'status', 'deadline', 'comment', 'responsible_user_id']
 
-# === ГЛАВНЫЙ СЕРИАЛИЗАТОР ЗАКАЗА (Order) ===
+# === ГЛАВНЫЙ СЕРИАЛИЗАТОР ЗАКАЗА ===
 class OrderSerializer(serializers.ModelSerializer):
-    
-    # Поле №1: ДЛЯ ЧТЕНИЯ (GET): Возвращает товары
     items = serializers.SerializerMethodField()
-    
-    # Поле №2: ДЛЯ ЗАПИСИ (POST/PUT): Принимает массив товаров
-    items_write = ItemWriteSerializer(
-        many=True, 
-        write_only=True, 
-        required=False
-    )
-    
+    items_write = ItemWriteSerializer(many=True, write_only=True, required=False)
+    history = OrderHistorySerializer(many=True, read_only=True) # 👈 Читаем историю
+
     class Meta:
         model = Order
-        fields = [
-            'id', 
-            'client', 
-            'status', 
-            'created_at', 
-            'items',         
-            'items_write'    
-        ]
+        fields = ['id', 'client', 'status', 'created_at', 'items', 'items_write', 'history']
 
-    # Метод для получения списка товаров для чтения
     def get_items(self, obj):
-        
-        # 1. Проверяем 'context', который передал OrderViewSet
-        #    По умолчанию - показываем НЕ-архивные
         show_archived = self.context.get('show_archived', False)
-        
         if show_archived:
-            # Если context['show_archived'] == True,
-            # Показываем только АРХИВНЫЕ товары
             items_to_show = obj.items.filter(is_archived=True)
         else:
-            # Иначе (по умолчанию),
-            # Показываем только АКТИВНЫЕ (НЕ-архивные) товары
             items_to_show = obj.items.filter(is_archived=False)
-            
-        # 2. Сериализуем отфильтрованный список
-        serializer = ItemSerializer(items_to_show, many=True)
-        return serializer.data
+        return ItemSerializer(items_to_show, many=True).data
 
-    # Логика создания нового заказа (POST)
     def create(self, validated_data):
         items_data = validated_data.pop('items_write', []) 
-        
-        with transaction.atomic():  # 👈 Транзакция: Все или ничего
+        user = self.context['request'].user # Текущий юзер
+
+        with transaction.atomic():
             order = Order.objects.create(**validated_data)
+            
+            # Записываем в историю создание
+            OrderHistory.objects.create(
+                order=order, user=user, message="Создал заказ"
+            )
+
             for item_data in items_data:
-                # При создании id в item_data игнорируется, создаются новые
-                if 'id' in item_data:
-                    del item_data['id']
+                if 'id' in item_data: del item_data['id']
                 Item.objects.create(order=order, **item_data)
                 
         return order
         
-    # Логика обновления существующего заказа (PUT/PATCH)
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items_write', None) 
+        user = self.context['request'].user # Текущий юзер
 
-        # 👈 Открываем транзакцию
         with transaction.atomic():
+            # 1. Проверяем изменения в самом Заказе
+            if 'client' in validated_data and instance.client != validated_data['client']:
+                OrderHistory.objects.create(
+                    order=instance, user=user, 
+                    message=f"Изменил клиента: {instance.client} -> {validated_data['client']}"
+                )
             
-            # 1. Обновляем поля Order
             instance.client = validated_data.get('client', instance.client)
-            # Если статус передан явно, обновляем его
             if 'status' in validated_data:
-                 instance.status = validated_data['status']
+                instance.status = validated_data['status']
             instance.save() 
             
-            # 2. Обновляем Items (Умное обновление)
+            # 2. Обновляем Товары и пишем историю
             if items_data is not None:
-                keep_ids = [] # Список ID, которые нужно оставить (не удалять)
+                keep_ids = []
 
                 for item_data in items_data:
                     item_id = item_data.get('id', None)
 
                     if item_id:
-                        # А) Если ID есть -> Ищем существующий товар в этом заказе
+                        # --- ОБНОВЛЕНИЕ ТОВАРА ---
                         item_obj = Item.objects.filter(id=item_id, order=instance).first()
                         if item_obj:
-                            # Обновляем поля найденного товара
+                            changes = []
+                            # Сравниваем поля для истории
+                            if 'status' in item_data and item_obj.status != item_data['status']:
+                                changes.append(f"статус '{item_obj.name}' ({item_obj.get_status_display()} -> {item_data['status']})")
+                            
+                            if 'quantity' in item_data and item_obj.quantity != item_data['quantity']:
+                                changes.append(f"кол-во '{item_obj.name}' ({item_obj.quantity} -> {item_data['quantity']})")
+                                
+                            if 'deadline' in item_data and str(item_obj.deadline) != str(item_data['deadline']):
+                                changes.append(f"срок '{item_obj.name}'")
+
+                            if changes:
+                                msg = "Изменил: " + ", ".join(changes)
+                                OrderHistory.objects.create(order=instance, user=user, message=msg)
+
+                            # Сохраняем данные
                             for attr, value in item_data.items():
-                                if attr != 'id': # ID менять нельзя
-                                    setattr(item_obj, attr, value)
+                                if attr != 'id': setattr(item_obj, attr, value)
                             item_obj.save()
                             keep_ids.append(item_obj.id)
-                        else:
-                            # Если ID пришел, но товара такого нет (или он не от этого заказа),
-                            # создаем новый, убрав ошибочный ID.
-                            if 'id' in item_data:
-                                del item_data['id']
-                            new_item = Item.objects.create(order=instance, **item_data)
-                            keep_ids.append(new_item.id)
                     else:
-                        # Б) Если ID нет -> Создаем новый товар
+                        # --- ДОБАВЛЕНИЕ НОВОГО ТОВАРА ---
                         new_item = Item.objects.create(order=instance, **item_data)
                         keep_ids.append(new_item.id)
+                        OrderHistory.objects.create(
+                            order=instance, user=user, 
+                            message=f"Добавил товар: {new_item.name}"
+                        )
                 
-                # 3. Удаляем товары, которых нет в новом списке
-                # Удаляем только НЕ архивные товары, которые не попали в keep_ids.
-                # Архивные товары не трогаем, чтобы они не исчезли, если фронтенд их не прислал.
-                instance.items.filter(is_archived=False).exclude(id__in=keep_ids).delete()
+                # --- УДАЛЕНИЕ ТОВАРА ---
+                # Находим товары, которые были удалены
+                items_to_delete = instance.items.filter(is_archived=False).exclude(id__in=keep_ids)
+                for del_item in items_to_delete:
+                    OrderHistory.objects.create(
+                        order=instance, user=user, 
+                        message=f"Удалил товар: {del_item.name}"
+                    )
+                items_to_delete.delete()
             
-            # 4. Обновляем общий статус Order (на всякий случай)
             instance.update_status()
             
-        # 👈 Конец транзакции (автоматический commit)
         return instance

@@ -24,4 +24,5 @@ urlpatterns = [
 
     # 3. В самом конце подключаем все пути роутера (orders/, products/ и т.д.)
     path('', include(router.urls)),
+    path('ai-chat/', views.api.chat_with_ai, name='api-ai-chat'),
 ]

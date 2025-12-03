@@ -1171,18 +1171,17 @@ body::after {
     align-items: center;
     gap: 15px;
     
-    /* 👇 ИСПРАВЛЕНИЕ: Сдвигаем на 120% от ширины самого элемента. 
-       Теперь оно гарантированно улетит за экран полностью. */
-    transform: translateX(120%); 
+    /* 👇 ИСПРАВЛЕНИЕ: Сдвигаем на 100% ширины + 40px (чтобы компенсировать right: 30px) */
+    transform: translateX(calc(100% + 40px)); 
     
-    transition: transform 0.3s ease;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 1001;
     max-width: 450px;
     border-left: 4px solid var(--primary-color);
 }
 
 .notification.show {
-    transform: translateX(0);
+    transform: translateX(0); /* Возвращаем на место */
 }
 
 .notification.success {

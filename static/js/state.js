@@ -8,6 +8,10 @@ let _userCatalog = [];
 let _currentEditingOrderId = null;
 let _notificationShownToday = new Set();
 
+let _sortConfig = {
+    field: 'created_at', // По умолчанию сортируем по дате создания
+    direction: 'desc'    // Сначала новые
+};
 // --- Публичные функции (Геттеры и Сеттеры) ---
 
 // Заказы
@@ -38,4 +42,9 @@ export const setCurrentEditingOrderId = (id) => {
 export const getNotificationSet = () => _notificationShownToday;
 export const clearNotificationSet = () => {
     _notificationShownToday.clear();
+};
+
+export const getSortConfig = () => _sortConfig;
+export const setSortConfig = (field, direction) => {
+    _sortConfig = { field, direction };
 };

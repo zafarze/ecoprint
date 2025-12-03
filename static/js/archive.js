@@ -1,15 +1,13 @@
 // D:\Projects\EcoPrint\static\js\archive.js
-// (ПОЛНЫЙ ОБНОВЛЕННЫЙ КОД)
+// (ПОЛНЫЙ КОД С ЗАЩИТОЙ КНОПКИ УДАЛЕНИЯ)
 
 // Импортируем утилиты и API
 import { formatDate, getStatusText } from './utils.js';
-import { unarchiveOrder, deleteOrder } from './api.js'; // Добавили deleteOrder
-import { showNotification } from './ui.js'; // Импортируем уведомления, вместо дублирования
+import { unarchiveOrder, deleteOrder } from './api.js';
+import { showNotification } from './ui.js'; 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Настраиваем слушатели
     setupEventListeners();
-    // Загружаем заказы
     loadArchivedOrders();
 });
 
@@ -17,8 +15,7 @@ function setupEventListeners() {
     const tableBody = document.getElementById('archiveTableBody');
     tableBody?.addEventListener('click', handleTableClick);
     
-    // Слушатель закрытия уведомлений уже есть в ui.js, 
-    // но если на странице архива он не срабатывает, можно добавить здесь:
+    // Дополнительный слушатель для закрытия уведомлений на странице архива
     const notificationCloseBtn = document.getElementById('notificationCloseBtn');
     if (notificationCloseBtn) {
         notificationCloseBtn.addEventListener('click', () => {
@@ -94,16 +91,28 @@ function renderArchiveRow(order, tableBody) {
 
     const orderStatusHtml = `<span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>`;
     
+    // 👇 НОВАЯ ЛОГИКА: ПРОВЕРКА ПРАВ ДОСТУПА
+    // Берем глобальную переменную из HTML. 
+    // Если user.is_superuser == true, переменная canDelete будет true.
+    const canDelete = window.USER_PERMISSIONS && window.USER_PERMISSIONS.is_superuser;
+    
+    let deleteButtonHtml = '';
+    
+    // Рисуем кнопку, ТОЛЬКО если пользователь Админ
+    if (canDelete) {
+        deleteButtonHtml = `
+            <button class="icon-btn delete delete-btn" title="Удалить навсегда" data-id="${order.id}">
+                <i class="fas fa-trash"></i>
+            </button>`;
+    }
+
     // Кнопки действий
     const actionsHtml = `
         <div class="actions">
             <button class="icon-btn unarchive-btn" title="Восстановить из архива" data-id="${order.id}">
                 <i class="fas fa-undo"></i>
             </button>
-            <button class="icon-btn delete delete-btn" title="Удалить навсегда" data-id="${order.id}">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>`;
+            ${deleteButtonHtml} </div>`;
 
     let itemsContainerHtml = '<div class="items-container">';
     archivedItems.forEach((item, index) => {
@@ -161,7 +170,7 @@ async function handleUnarchiveOrder(orderId) {
 }
 
 /**
- * Логика УДАЛЕНИЯ заказа (Реализована)
+ * Логика УДАЛЕНИЯ заказа (Только для Админов)
  */
 async function handleDeleteOrder(orderId) {
     if (!confirm('ВНИМАНИЕ: Вы уверены, что хотите удалить этот заказ НАВСЕГДА?\n\nЭто действие нельзя отменить.')) {
@@ -169,11 +178,10 @@ async function handleDeleteOrder(orderId) {
     }
 
     try {
-        await deleteOrder(orderId); // Вызов API
+        await deleteOrder(orderId); 
         
         showNotification('Удалено', 'Заказ успешно удален.', 'success');
         
-        // Удаляем строку из UI
         const row = document.getElementById(`archive-row-${orderId}`);
         if (row) row.remove();
 
@@ -181,7 +189,7 @@ async function handleDeleteOrder(orderId) {
 
     } catch (error) {
         console.error(error);
-        showNotification('Ошибка', 'Не удалось удалить заказ.', 'error');
+        showNotification('Ошибка', 'Не удалось удалить заказ (возможно, нет прав).', 'error');
     }
 }
 

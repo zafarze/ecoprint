@@ -50,6 +50,13 @@
 </div>
 {% endblock content %}
 
+<script>
+    // Создаем глобальный объект с правами
+    window.USER_PERMISSIONS = {
+        is_superuser: {{ request.user.is_superuser|yesno:"true,false" }}
+    };
+</script>
+
 {% block extra_js %}
     <script type="module" src="{% static 'js/utils.js' %}"></script>
     <script type="module" src="{% static 'js/api.js' %}"></script>

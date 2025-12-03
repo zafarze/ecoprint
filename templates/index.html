@@ -6,6 +6,7 @@
 {% block content %}
     <div class="container">
         <div class="main-content">
+            
             <div class="filters-card">
                 <div class="filters-header">
                     <div class="filters-header-title">
@@ -19,7 +20,8 @@
                             Новый заказ
                         </button>
                     </div>
-                    </div>
+                </div>
+                
                 <div class="filter-row">
                     <div class="search-box">
                         <i class="fas fa-search"></i>
@@ -43,37 +45,44 @@
                         </select>
                     </div>
                 </div>
+                
                 <div class="quick-filters">
-    <button class="quick-filter-btn" id="showReadyBtn">
-        <i class="fas fa-check-circle"></i> Только готовые
-    </button>
-    
-    <button class="quick-filter-btn" id="showInProgressBtn">
-        <i class="fas fa-spinner fa-spin"></i> В процессе
-    </button>
-    <button class="quick-filter-btn" id="showNotReadyBtn">
-        <i class="fas fa-clock"></i> Только не готовые
-    </button>
-    <button class="quick-filter-btn" id="resetFiltersBtn">
-        <i class="fas fa-redo"></i> Сбросить фильтры
-    </button>
-</div>
+                    <button class="quick-filter-btn" id="showReadyBtn">
+                        <i class="fas fa-check-circle"></i> Только готовые
+                    </button>
+                    <button class="quick-filter-btn" id="showInProgressBtn">
+                        <i class="fas fa-spinner fa-spin"></i> В процессе
+                    </button>
+                    <button class="quick-filter-btn" id="showNotReadyBtn">
+                        <i class="fas fa-clock"></i> Только не готовые
+                    </button>
+                    <button class="quick-filter-btn" id="resetFiltersBtn">
+                        <i class="fas fa-redo"></i> Сбросить фильтры
+                    </button>
+                </div>
             </div>
 
             <div class="table-card">
                 <table id="ordersTable">
                     <thead>
-                        <tr>
-                            <th style="width: 5%;">№</th>
-                            <th style="width: 15%;">Клиент</th>
-                            <th style="width: 45%;">Товары (в заказе)</th>
-                            <th style="width: 15%;">Статус заказа</th>
-                            <th style="width: 10%;">Действия</th>
-                        </tr>
-                    </thead>
+    <tr>
+        <th style="width: 5%; cursor: pointer;" class="sortable" data-sort="id">
+            № <i class="fas fa-sort"></i>
+        </th>
+        <th style="width: 15%; cursor: pointer;" class="sortable" data-sort="client">
+            Клиент <i class="fas fa-sort"></i>
+        </th>
+        <th style="width: 45%;">Товары (в заказе)</th>
+        <th style="width: 15%; cursor: pointer;" class="sortable" data-sort="status">
+            Статус заказа <i class="fas fa-sort"></i>
+        </th>
+        <th style="width: 10%;">Действия</th>
+    </tr>
+</thead>
                     <tbody id="ordersTableBody">
                         </tbody>
                 </table>
+                
                 <div class="empty-state" id="emptyState" style="display: none;">
                     <i class="fas fa-inbox"></i>
                     <h3>Нет заказов для отображения</h3>
@@ -85,6 +94,7 @@
 
     <div class="modal" id="orderModal">
         <div class="modal-content">
+            
             <div class="modal-header">
                 <div class="modal-header-content">
                     <div>
@@ -110,7 +120,7 @@
                             <label for="clientName">Имя клиента *</label>
                             <input type="text" id="clientName" placeholder="Введите имя клиента" required>
                         </div>
-                        </div>
+                    </div>
 
                     <div class="form-section">
                         <div class="form-section-header">
@@ -133,7 +143,15 @@
                     </div>
                 </form>
             </div>
-            
+
+            <div class="history-section" style="margin-top: 10px; border-top: 1px solid #eee; padding: 15px 20px;">
+                <h4 style="font-size: 0.9rem; color: #666; margin-bottom: 10px; cursor: pointer; display: flex; align-items: center;" onclick="toggleHistory()">
+                    <i class="fas fa-history" style="margin-right: 8px;"></i> История изменений 
+                    <i class="fas fa-chevron-down" id="historyArrow" style="font-size: 0.8em; margin-left: auto; transition: transform 0.3s;"></i>
+                </h4>
+                <div id="historyContainer" style="display: none; max-height: 150px; overflow-y: auto; font-size: 0.85rem; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                    </div>
+            </div>
             <div class="modal-footer">
                 <div class="order-summary">
                     <div class="summary-item">
@@ -193,8 +211,7 @@
                         Выбрать из списка
                     </button>
                 </div>
-                <div class="product-suggestions" style="display: none;">
-                    </div>
+                <div class="product-suggestions" style="display: none;"></div>
             </div>
             <div class="item-form-grid-3">
                 <div class="form-group">
@@ -204,7 +221,8 @@
                 <div class="form-group">
                     <label>Создатель</label>
                     <div class="custom-select" style="width: 100%;">
-                        <select class="item-responsible-user" disabled> <option value="" disabled selected>-- Загрузка... --</option>
+                        <select class="item-responsible-user" disabled> 
+                            <option value="" disabled selected>-- Загрузка... --</option>
                         </select>
                     </div>
                 </div>
@@ -226,19 +244,35 @@
             
             <div class="form-group" style="margin-top: 10px;">
                 <label>Комментарий / Заметка</label>
-                <textarea class="item-comment" 
-                          placeholder="Напр: матовая бумага, 300г/м², проверить макет..."></textarea>
+                <textarea class="item-comment" placeholder="Напр: матовая бумага, 300г/м², проверить макет..."></textarea>
             </div>
-            
         </div>
     </template>
-    {% endblock content %}
-
+{% endblock content %}
 
 {% block extra_js %}
     <script>
-        // Передаем ID пользователя в JS, чтобы app.js мог его использовать
-        const CURRENT_USER_ID = {{ request.user.id }}; 
+        // 1. Глобальные права доступа для JS
+        window.USER_PERMISSIONS = {
+            is_superuser: {{ request.user.is_superuser|yesno:"true,false" }}
+        };
+
+        // 2. ID текущего пользователя для авто-подстановки
+        const CURRENT_USER_ID = {{ request.user.id|default:"null" }}; 
+
+        // 3. Функция для сворачивания/разворачивания истории
+        function toggleHistory() {
+            const container = document.getElementById('historyContainer');
+            const arrow = document.getElementById('historyArrow');
+            
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                if(arrow) arrow.style.transform = 'rotate(180deg)';
+            } else {
+                container.style.display = 'none';
+                if(arrow) arrow.style.transform = 'rotate(0deg)';
+            }
+        }
     </script>
     
     <script type="module" src="{% static 'js/state.js' %}"></script>
@@ -246,5 +280,4 @@
     <script type="module" src="{% static 'js/api.js' %}"></script>
     <script type="module" src="{% static 'js/ui.js' %}"></script>
     <script type="module" src="{% static 'js/app.js' %}"></script>
-
 {% endblock %}

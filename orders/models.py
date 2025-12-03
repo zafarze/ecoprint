@@ -286,3 +286,19 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+# === Модель Истории Изменений (НОВАЯ) ===
+class OrderHistory(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='history', verbose_name="Заказ")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Пользователь")
+    message = models.TextField(verbose_name="Действие")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата")
+
+    class Meta:
+        ordering = ['-created_at'] # Свежие записи сверху
+        verbose_name = "Запись истории"
+        verbose_name_plural = "История изменений"
+
+    def __str__(self):
+        user_str = self.user.username if self.user else "Система"
+        return f"{self.created_at.strftime('%d.%m %H:%M')} - {user_str}: {self.message}"

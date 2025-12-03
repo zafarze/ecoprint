@@ -45,5 +45,38 @@
     {% block extra_js %}
     {% endblock extra_js %}
     
+
+    <button class="chat-toggle-btn" id="chatToggleBtn">
+    <i class="fas fa-robot"></i>
+</button>
+
+<div class="chat-widget" id="chatWidget">
+    <div class="chat-header">
+        <i class="fas fa-robot"></i>
+        <span>EcoPrint AI Помощник</span>
+    </div>
+    
+    <div class="chat-body" id="chatBody">
+        <div class="message bot">
+            Привет! Я твой ИИ-помощник. Я вижу все заказы в базе. Спроси меня: "Сколько заказов в работе?". 🤖
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+    
+    <div class="chat-footer">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Задай вопрос...">
+        <button class="chat-send-btn" id="chatSendBtn">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+<script type="module" src="{% static 'js/chat.js' %}"></script>
+
+
 </body>
 </html>

@@ -1,148 +1,255 @@
-// D:\Projects\EcoPrint\static\js\statistics.js (ПОЛНЫЙ КОД)
+// D:\Projects\EcoPrint\static\js\statistics.js
+// (ОБНОВЛЕННАЯ ВЕРСИЯ: ИМПОРТ ИЗ UTILS, БЕЗ ДУБЛИРОВАНИЯ)
 
-document.addEventListener('DOMContentLoaded', () => {
+// 👇 Импортируем токен напрямую из утилит (DRY)
+import { csrftoken } from './utils.js';
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Статистика: скрипт загружен');
     
-    // Запускаем загрузку данных
-    fetchStatisticsData();
+    let currentPeriod = 'week';
+    let statusChart = null;
+    let activityChart = null;
 
-});
+    // Элементы DOM для KPI
+    const totalOrdersEl = document.getElementById('kpi-total-orders');
+    const pendingOrdersEl = document.getElementById('kpi-pending-orders');
+    const createdTodayEl = document.getElementById('kpi-created-today');
+    const topProductEl = document.getElementById('kpi-top-product');
+    const syncBtn = document.getElementById('sync-btn');
 
-// --- ГЛАВНАЯ ФУНКЦИЯ ---
-async function fetchStatisticsData() {
-    try {
-        const response = await fetch('/api/statistics-data/');
+    // Инициализация Chart.js
+    const statusCtx = document.getElementById('statusPieChart');
+    const activityCtx = document.getElementById('activityLineChart');
+    
+    // Проверка наличия элементов (чтобы скрипт не падал на других страницах)
+    if (!statusCtx || !activityCtx) {
+        // Если графиков нет на странице, просто выходим (тихо)
+        return;
+    }
+
+    const statusChartCtx = statusCtx.getContext('2d');
+    const activityChartCtx = activityCtx.getContext('2d');
+
+    // Загрузка данных
+    function loadStatisticsData(period) {
+        console.log('Загружаем данные для периода:', period);
         
-        if (!response.ok) {
-            throw new Error(`Ошибка сети: ${response.status}`);
+        fetch(`/api/statistics-data/?period=${period}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сети: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                updateKPIs(data);
+                updateCharts(data);
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки статистики:', error);
+                showError();
+            });
+    }
+
+    // Обновление KPI значений
+    function updateKPIs(data) {
+        if (totalOrdersEl) totalOrdersEl.textContent = data.total_orders || 0;
+        if (pendingOrdersEl) pendingOrdersEl.textContent = data.pending_orders || 0;
+        if (createdTodayEl) createdTodayEl.textContent = data.created_today || 0;
+        
+        let topProductText = data.top_product || 'Нет данных';
+        if (topProductText.length > 15) {
+            topProductText = topProductText.substring(0, 15) + '...';
+        }
+        if (topProductEl) topProductEl.textContent = topProductText;
+    }
+
+    // Показать ошибку
+    function showError() {
+        if (totalOrdersEl) totalOrdersEl.textContent = '-';
+        if (pendingOrdersEl) pendingOrdersEl.textContent = '-';
+        if (createdTodayEl) createdTodayEl.textContent = '-';
+        if (topProductEl) topProductEl.textContent = 'Ошибка';
+        
+        if (statusChart) {
+            statusChart.destroy();
+            statusChart = null;
+        }
+        if (activityChart) {
+            activityChart.destroy();
+            activityChart = null;
+        }
+    }
+
+    // Обновление графиков
+    function updateCharts(data) {
+        // 1. Круговая диаграмма статусов
+        if (statusChart) {
+            statusChart.destroy();
         }
         
-        const data = await response.json();
-        
-        // 1. Заполняем KPI-карточки
-        populateKPIs(data);
-        
-        // 2. Рисуем графики
-        renderStatusPieChart(data.status_counts);
-        renderActivityLineChart(data.activity_last_7_days);
-
-    } catch (error) {
-        console.error("Не удалось загрузить статистику:", error);
-        // Можно показать ошибку пользователю
-        document.getElementById('kpi-total-orders').textContent = "Ошибка";
-        document.getElementById('kpi-pending-orders').textContent = "Ошибка";
-        document.getElementById('kpi-ready-today').textContent = "Ошибка";
-        document.getElementById('kpi-top-product').textContent = "Ошибка";
-    }
-}
-
-// --- 1. ЗАПОЛНЕНИЕ KPI ---
-function populateKPIs(data) {
-    document.getElementById('kpi-total-orders').textContent = data.total_orders;
-    document.getElementById('kpi-pending-orders').textContent = data.pending_orders;
-    document.getElementById('kpi-ready-today').textContent = data.created_today; // Используем 'created_today'
-    document.getElementById('kpi-top-product').textContent = data.top_product;
-}
-
-// --- 2. РИСОВАНИЕ ГРАФИКА (Статусы) ---
-function renderStatusPieChart(statusData) {
-    const ctx = document.getElementById('statusPieChart');
-    if (!ctx) return; // Убеждаемся, что элемент существует
-
-    // Цвета для статусов
-    const statusColors = {
-        'not-ready': '#f97316', // Оранжевый
-        'in-progress': '#3b82f6', // Синий
-        'ready': '#22c55e'       // Зеленыый
-    };
-
-    // Назначаем цвета в том же порядке, что и labels
-    const backgroundColors = statusData.labels.map(label => statusColors[label] || '#9ca3af'); // Серый по умолчанию
-
-    new Chart(ctx.getContext('2d'), {
-        type: 'pie',
-        data: {
-            labels: statusData.labels.map(label => translateStatus(label)), // Переводим статусы
-            datasets: [{
-                label: 'Заказы',
-                data: statusData.counts,
-                backgroundColor: backgroundColors,
-                borderColor: '#ffffff',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
+        if (data.status_counts && data.status_counts.labels && data.status_counts.labels.length > 0) {
+            const statusLabels = data.status_counts.labels.map(label => {
+                return label === 'not-ready' ? 'Не готов' : 
+                       label === 'in-progress' ? 'В процессе' : 
+                       label === 'ready' ? 'Готово' : label;
+            });
+            
+            const backgroundColors = data.status_counts.labels.map(label => {
+                return label === 'not-ready' ? '#f56565' :
+                       label === 'in-progress' ? '#f6ad55' :
+                       '#68d391';
+            });
+            
+            statusChart = new Chart(statusChartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: data.status_counts.counts,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 1,
+                        borderColor: '#fff'
+                    }]
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            if (label) {
-                                label += ': ';
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: { size: 12 }
                             }
-                            if (context.parsed !== null) {
-                                label += context.parsed + ' шт.';
-                            }
-                            return label;
                         }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // 2. Линейная диаграмма активности
+        if (activityChart) {
+            activityChart.destroy();
+        }
+        
+        if (data.activity_data && data.activity_data.labels && data.activity_data.labels.length > 0) {
+            activityChart = new Chart(activityChartCtx, {
+                type: 'line',
+                data: {
+                    labels: data.activity_data.labels,
+                    datasets: [{
+                        label: 'Количество заказов',
+                        data: data.activity_data.counts,
+                        borderColor: '#4299e1',
+                        backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#4299e1',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { font: { size: 12 } }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: true, color: 'rgba(0,0,0,0.05)' },
+                            ticks: { font: { size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { display: true, color: 'rgba(0,0,0,0.05)' },
+                            ticks: { font: { size: 11 }, precision: 0 }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'nearest'
                     }
                 }
-            }
+            });
         }
-    });
-}
-
-// --- 3. РИСОВАНИЕ ГРАФИКА (Активность) ---
-function renderActivityLineChart(activityData) {
-    const ctx = document.getElementById('activityLineChart');
-    if (!ctx) return; // Убеждаемся, что элемент существует
-
-    new Chart(ctx.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: activityData.labels, // Даты (напр. '14.11')
-            datasets: [{
-                label: 'Создано заказов',
-                data: activityData.counts, // Количество
-                fill: true,
-                backgroundColor: 'rgba(59, 130, 246, 0.1)', // Прозрачный синий
-                borderColor: 'rgba(59, 130, 246, 1)', // Яркий синий
-                tension: 0.3, // Сглаживание линии
-                pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-                pointBorderColor: '#ffffff',
-                pointHoverRadius: 7,
-                pointHoverBackgroundColor: 'rgba(59, 130, 246, 1)',
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: false // Скрываем легенду
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    // Показываем только целые числа (1, 2, 3... а не 1.5)
-                    ticks: {
-                        stepSize: 1 
-                    }
-                }
-            }
-        }
-    });
-}
-
-// --- Вспомогательная функция для перевода статусов ---
-function translateStatus(status) {
-    switch(status) {
-        case 'not-ready': return 'Не готов';
-        case 'in-progress': return 'В процессе';
-        case 'ready': return 'Готово';
-        default: return status;
     }
-}
+
+    // Обработчики кнопок периода
+    document.querySelectorAll('.btn-stat').forEach(button => {
+        button.addEventListener('click', function() {
+            // Сброс активного состояния
+            document.querySelectorAll('.btn-stat').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.background = '#fff';
+                btn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+            });
+            
+            // Установка активного состояния
+            this.classList.add('active');
+            this.style.background = '#e5e7eb';
+            this.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.1)';
+            
+            // Загрузка данных
+            currentPeriod = this.dataset.period;
+            loadStatisticsData(currentPeriod);
+        });
+    });
+
+    // Обработчик синхронизации
+    if (syncBtn) {
+        syncBtn.addEventListener('click', function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Синхронизация...';
+            
+            fetch('/api/sync-sheets/', {
+                method: 'POST',
+                headers: {
+                    // 👇 Используем импортированный токен
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('✅ ' + data.message);
+                    loadStatisticsData(currentPeriod);
+                } else {
+                    alert('❌ Ошибка: ' + (data.error || data.message || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка синхронизации:', error);
+                alert('❌ Ошибка сети: ' + error.message);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        });
+    }
+
+    // 👇 ФУНКЦИЯ getCookie УДАЛЕНА ОТСЮДА (она теперь в utils.js)
+
+    // Инициализация
+    loadStatisticsData(currentPeriod);
+});

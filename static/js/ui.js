@@ -1,11 +1,12 @@
 // D:\Projects\EcoPrint\static\js\ui.js
-// (ПОЛНЫЙ КОД)
+// (ВЕРСИЯ С XSS ЗАЩИТОЙ)
 
 import { getProductCatalog, getUserCatalog } from './state.js';
-import { formatDate, getDaysUntilDeadline, getStatusText } from './utils.js';
+// 👇 Импортируем новую функцию
+import { formatDate, getDaysUntilDeadline, getStatusText, escapeHtml } from './utils.js';
+
 
 // --- 1. Поиск DOM-элементов ---
-// Экспортируем их, чтобы app.js мог вешать события
 export const ordersTableBody = document.getElementById('ordersTableBody');
 export const emptyState = document.getElementById('emptyState');
 export const orderModal = document.getElementById('orderModal');
@@ -44,10 +45,8 @@ export const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
  * Главная функция отрисовки таблицы заказов.
  */
 export function renderOrders(filteredOrders) {
-    // Проверка на случай, если мы не на главной странице
     if (!ordersTableBody) return;
 
-    // Очистка таблицы
     ordersTableBody.innerHTML = '';
     
     if (filteredOrders.length === 0) {
@@ -56,8 +55,10 @@ export function renderOrders(filteredOrders) {
     }
     
     if (emptyState) emptyState.style.display = 'none';
+
+    // Получаем права доступа из глобальной переменной (из HTML)
+    const canDelete = window.USER_PERMISSIONS && window.USER_PERMISSIONS.is_superuser;
     
-    // Рендеринг строк
     filteredOrders.forEach(order => {
         const itemCount = order.items.length;
         if (itemCount === 0) return; 
@@ -69,11 +70,17 @@ export function renderOrders(filteredOrders) {
 
         const orderStatusHtml = `<span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>`;
         
+        // Логика кнопки удаления: Рисуем только Админу
+        let deleteBtnHtml = '';
+        if (canDelete) {
+            deleteBtnHtml = `<button class="icon-btn delete delete-btn" data-id="${order.id}" title="Удалить"><i class="fas fa-trash"></i></button>`;
+        }
+
         const actionsHtml = `
             <div class="actions">
                 <button class="icon-btn edit-btn" data-id="${order.id}" title="Редактировать"><i class="fas fa-edit"></i></button>
                 <button class="icon-btn archive-btn" data-id="${order.id}" title="Архивировать"><i class="fas fa-archive"></i></button>
-                <button class="icon-btn delete delete-btn" data-id="${order.id}" title="Удалить"><i class="fas fa-trash"></i></button>
+                ${deleteBtnHtml}
             </div>`;
 
         let itemsContainerHtml = '<div class="items-container">';
@@ -87,21 +94,22 @@ export function renderOrders(filteredOrders) {
                 else if (daysLeft === 1) urgencyClass = 'item-urgent';
             }
 
+            // Имя ответственного тоже лучше экранировать на всякий случай
             const responsibleUser = item.responsible_user;
             const respName = (responsibleUser) 
                 ? (responsibleUser.first_name || responsibleUser.last_name ? `${responsibleUser.first_name} ${responsibleUser.last_name}`.trim() : responsibleUser.username) 
                 : 'Не назначен';
             
-            // 👇 НОВОЕ: Форматируем дату создания заказа
             const startDate = formatDate(order.created_at);
             const endDate = formatDate(item.deadline);
 
+            // 👇 ЗДЕСЬ ПРИМЕНЯЕМ escapeHtml К ДАННЫМ ПОЛЬЗОВАТЕЛЯ
             itemsContainerHtml += `
                 <div class="item-row-card ${urgencyClass}">
                     <span class="item-number">${index + 1}</span>
                     
                     <div class="item-content-row">
-                        <span class="item-name">${item.name}</span>
+                        <span class="item-name">${escapeHtml(item.name)}</span>
                         <span class="item-quantity">${item.quantity} шт.</span>
                         
                         <div class="item-dates-wrapper" style="display: flex; flex-direction: column; font-size: 0.85rem; line-height: 1.2; color: #555;">
@@ -114,30 +122,38 @@ export function renderOrders(filteredOrders) {
                         </div>
                         <div class="item-creator">
                             <i class="fas fa-user"></i>
-                            <span>${respName}</span>
+                            <span>${escapeHtml(respName)}</span>
                         </div>
                     </div>
                     
                     <span class="item-status ${item.status}" 
                           data-order-id="${order.id}"
                           data-item-id="${item.id}" 
-                          data-item-name="${item.name}" 
+                          data-item-name="${escapeHtml(item.name)}" 
                           data-item-quantity="${item.quantity}"
                           title="Нажмите, чтобы изменить статус">
                         ${getStatusText(item.status)}
                     </span>
                     
-                    ${item.comment ? `<div class="item-comment-display"><i class="fas fa-comment-alt"></i><div>${item.comment}</div></div>` : ''}
+                    ${item.comment ? `<div class="item-comment-display"><i class="fas fa-comment-alt"></i><div>${escapeHtml(item.comment)}</div></div>` : ''}
                 </div>
             `;
         });
         
         itemsContainerHtml += '</div>';
 
+        // 👇 И ЗДЕСЬ (Имя клиента)
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${order.id}</td>
-            <td><strong>${order.client}</strong></td>
+            <td>
+                <strong class="copy-client" 
+                        data-text="${escapeHtml(order.client)}" 
+                        style="cursor: pointer; border-bottom: 1px dashed #ccc;" 
+                        title="Нажмите, чтобы скопировать">
+                    ${escapeHtml(order.client)}
+                </strong>
+            </td>
             <td class="items-cell">${itemsContainerHtml}</td>
             <td>${orderStatusHtml}</td>
             <td>${actionsHtml}</td>
@@ -146,25 +162,6 @@ export function renderOrders(filteredOrders) {
     });
 }
 
-/**
- * Обновляет визуальное состояние кнопок быстрых фильтров.
- 
-export function updateQuickFilterButtons(activeFilter) {
-    document.querySelectorAll('.quick-filter-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    if (activeFilter === 'ready') {
-        showReadyBtn?.classList.add('active');
-    } else if (activeFilter === 'in-progress') {   // 👈 ДОБАВЛЕННЫЙ БЛОК
-        showInProgressBtn?.classList.add('active'); // 👈
-    } else if (activeFilter === 'not-ready') {
-        showNotReadyBtn?.classList.add('active');
-    } else if (activeFilter === 'all') {
-        resetFiltersBtn?.classList.add('active');
-    }
-}*/
-
 // --- 3. Функции Модального окна ---
 
 /**
@@ -172,6 +169,7 @@ export function updateQuickFilterButtons(activeFilter) {
  */
 export function openOrderModal(orderToEdit = null) {
     const today = new Date().toISOString().split('T')[0];
+    const historyContainer = document.getElementById('historyContainer'); 
     
     if (orderToEdit) {
         // --- РЕЖИМ РЕДАКТИРОВАНИЯ ---
@@ -180,7 +178,6 @@ export function openOrderModal(orderToEdit = null) {
         
         itemsFormContainer.innerHTML = '';
         orderToEdit.items.forEach((item, index) => {
-            // Получаем ID ответственного или null
             const respId = item.responsible_user ? item.responsible_user.id : null;
             
             const itemCard = createItemFormCard(
@@ -189,21 +186,50 @@ export function openOrderModal(orderToEdit = null) {
             );
             itemsFormContainer.appendChild(itemCard);
         });
+
+        // Заполнение истории
+        if (historyContainer) {
+            historyContainer.innerHTML = ''; 
+            
+            if (orderToEdit.history && orderToEdit.history.length > 0) {
+                orderToEdit.history.forEach(record => {
+                    const row = document.createElement('div');
+                    row.style.marginBottom = '8px';
+                    row.style.borderBottom = '1px solid #e0e0e0';
+                    row.style.paddingBottom = '4px';
+                    
+                    // Сообщение истории и имя юзера тоже экранируем
+                    row.innerHTML = `
+                        <div style="color: #6b7280; font-size: 0.75rem; margin-bottom: 2px;">
+                            <i class="far fa-clock"></i> ${record.created_at_formatted} • <strong>${escapeHtml(record.user_name)}</strong>
+                        </div>
+                        <div style="color: #374151;">${escapeHtml(record.message)}</div>
+                    `;
+                    historyContainer.appendChild(row);
+                });
+            } else {
+                historyContainer.innerHTML = '<div style="color: #9ca3af; font-style: italic; text-align: center;">История изменений пуста</div>';
+            }
+        }
+
     } else {
         // --- РЕЖИМ СОЗДАНИЯ ---
         modalTitle.textContent = 'Новый заказ';
         orderForm.reset();
         itemsFormContainer.innerHTML = '';
         
-        // Берем ID текущего юзера из глобальной переменной (в шаблоне HTML)
         const currentUserId = (typeof CURRENT_USER_ID !== 'undefined') ? CURRENT_USER_ID : null;
         
         const firstItem = createItemFormCard(
             '', 1, 'not-ready', today, 1,
-            currentUserId, // По умолчанию ответственный - создатель
+            currentUserId, 
             '' 
         );
         itemsFormContainer.appendChild(firstItem);
+
+        if (historyContainer) {
+            historyContainer.innerHTML = '<div style="color: #9ca3af; text-align: center;">Новый заказ (история появится после сохранения)</div>';
+        }
     }
     
     updateOrderSummary();
@@ -218,7 +244,7 @@ export function closeOrderModal() {
 }
 
 /**
- * Добавляет новую пустую строку товара в модальное окно.
+ * Добавляет новую пустую строку товара.
  */
 export function addItemRow() {
     const itemCount = itemsFormContainer.children.length + 1;
@@ -232,18 +258,16 @@ export function addItemRow() {
     );
     itemsFormContainer.appendChild(itemCard);
     updateOrderSummary();
-    updateItemNumbers(); // Обновляем нумерацию на всякий случай
+    updateItemNumbers(); 
 }
 
 /**
  * Создает DOM-элемент карточки товара для формы.
  */
 function createItemFormCard(name, quantity, status, deadline, itemNumber, responsibleUserId, comment = '') {
-    // Клонируем шаблон
     const template = document.getElementById('itemFormTemplate');
     const itemCard = template.content.cloneNode(true).firstElementChild;
     
-    // Находим элементы внутри карточки
     const badge = itemCard.querySelector('.item-number');
     const productInput = itemCard.querySelector('.product-name-input');
     const productTypeBtn = itemCard.querySelector('.product-type-btn');
@@ -255,7 +279,6 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
     const itemResponsibleSelect = itemCard.querySelector('.item-responsible-user');
     const commentInput = itemCard.querySelector('.item-comment'); 
 
-    // Устанавливаем значения
     badge.textContent = itemNumber;
     productInput.value = name;
 
@@ -265,7 +288,8 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
         productCatalog.forEach(product => {
             const suggestion = document.createElement('div');
             suggestion.className = 'product-suggestion';
-            suggestion.innerHTML = `<i class="${product.icon || 'fas fa-box'}"></i><span>${product.name}</span>`;
+            // 👇 И ЗДЕСЬ ТОЖЕ ЗАЩИТА (Название товара из справочника)
+            suggestion.innerHTML = `<i class="${escapeHtml(product.icon) || 'fas fa-box'}"></i><span>${escapeHtml(product.name)}</span>`;
             
             suggestion.addEventListener('click', () => {
                 productInput.value = product.name;
@@ -275,11 +299,9 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
             productSuggestions.appendChild(suggestion);
         });
     } else {
-        // Если каталог пуст, скрываем кнопку выбора
         productTypeBtn.style.display = 'none';
     }
 
-    // Логика кнопки "Выбрать из списка"
     productTypeBtn.addEventListener('click', () => {
         if (productSuggestions.style.display === 'none' || !productSuggestions.style.display) {
             productSuggestions.style.display = 'grid';
@@ -292,7 +314,7 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
 
     // 2. Выбор ответственного (Users)
     const userCatalog = getUserCatalog();
-    itemResponsibleSelect.innerHTML = ''; // Очищаем плейсхолдер
+    itemResponsibleSelect.innerHTML = ''; 
     
     if (userCatalog && userCatalog.length > 0) {
         userCatalog.forEach(user => {
@@ -314,16 +336,12 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
         itemResponsibleSelect.appendChild(option);
     }
     
-    // Устанавливаем текущее значение
     if (responsibleUserId) {
         itemResponsibleSelect.value = responsibleUserId;
     }
     
-    // ⚠️ БЛОКИРОВКА: Сейчас менять ответственного нельзя. 
-    // Если вы хотите разрешить менять исполнителя, удалите строку ниже:
     itemResponsibleSelect.disabled = true; 
     
-    // Остальные поля
     quantityInput.value = quantity;
     deadlineInput.value = deadline;
     statusSelect.value = status;
@@ -332,12 +350,10 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
     const today = new Date().toISOString().split('T')[0];
     deadlineInput.setAttribute('min', today);
 
-    // Показываем кнопку удаления, если товаров > 1
     if (itemNumber > 1) {
         removeBtn.style.display = 'block';
     }
 
-    // События
     statusSelect.addEventListener('change', updateOrderSummary);
     
     removeBtn.addEventListener('click', () => {
@@ -354,7 +370,7 @@ function createItemFormCard(name, quantity, status, deadline, itemNumber, respon
 }
 
 /**
- * Пересчитывает порядковые номера товаров в форме (1, 2, 3...).
+ * Пересчитывает порядковые номера товаров.
  */
 export function updateItemNumbers() {
     const itemCards = itemsFormContainer.querySelectorAll('.item-form-card');
@@ -365,7 +381,7 @@ export function updateItemNumbers() {
 }
 
 /**
- * Обновляет сводку (Всего / Готово) внизу формы.
+ * Обновляет сводку (Всего / Готово).
  */
 export function updateOrderSummary() {
     const itemCards = itemsFormContainer.querySelectorAll('.item-form-card');
@@ -385,17 +401,15 @@ export function updateOrderSummary() {
 
 // --- 4. Уведомления (Toast) ---
 
-/**
- * Показывает всплывающее уведомление.
- * @param {string} title - Заголовок
- * @param {string} message - Текст
- * @param {string} type - 'info', 'success', 'warning', 'error'
- */
 export function showNotification(title, message, type = 'info') {
     if (!notificationTitle || !notification) return; 
     
     notificationTitle.textContent = title;
-    notificationMessage.textContent = message;
+    // Здесь message может содержать HTML, но уведомления обычно системные.
+    // Если message может прийти от юзера, его тоже надо экранировать.
+    // Пока оставим textContent для безопасности (он сам экранирует).
+    notificationMessage.textContent = message; 
+    
     notification.className = 'notification show ' + type;
     
     const icon = notification.querySelector('.notification-icon i');
@@ -406,15 +420,11 @@ export function showNotification(title, message, type = 'info') {
                        'fas fa-info-circle';
     }
     
-    // Автоматическое закрытие через 5 секунд
     setTimeout(() => {
         closeNotification();
     }, 5000);
 }
 
-/**
- * Закрывает уведомление.
- */
 export function closeNotification() {
     if (notification) { 
         notification.classList.remove('show');

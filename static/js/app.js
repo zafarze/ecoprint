@@ -1,51 +1,44 @@
 // D:\Projects\EcoPrint\static\js\app.js
-// (ПОЛНАЯ ВЕРСИЯ С МУЛЬТИ-ФИЛЬТРАЦИЕЙ И МГНОВЕННЫМ ОБНОВЛЕНИЕМ)
+// (ОПТИМИЗИРОВАННАЯ ВЕРСИЯ: ИНТЕРВАЛ ОБНОВЛЕНИЯ 10 СЕК)
 
 import * as state from './state.js';
 import * as api from './api.js';
 import * as ui from './ui.js';
 import { getDaysUntilDeadline, playNotificationSound } from './utils.js';
 
-// Получаем настройки пользователя (передаются из HTML)
 const soundEnabled = window.USER_SETTINGS.soundEnabled;
 const popupEnabled = window.USER_SETTINGS.popupEnabled;
 const dayBeforeEnabled = window.USER_SETTINGS.dayBeforeEnabled;
 
-// Флаг: если открыто окно, мы не обновляем таблицу, чтобы не сбить фокус ввода
+// Флаг: если открыто окно, мы не обновляем таблицу
 let isModalOpen = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
-    
-    // 👇 ЗАПУСКАЕМ БЫСТРЫЙ ЦИКЛ ОБНОВЛЕНИЯ (каждую 1 сек)
     startAutoRefreshLoop();
 });
 
 /**
- * Умный цикл обновления.
- * Используем setTimeout вместо setInterval, чтобы запросы не наслаивались друг на друга.
+ * Автоматическое обновление данных.
+ * ИНТЕРВАЛ: 10 секунд (10000 мс) вместо 1 сек, чтобы не перегружать сервер.
  */
 async function startAutoRefreshLoop() {
-    // 1. Если модальное окно закрыто - обновляем данные
     if (!isModalOpen) {
         try {
-            // Загружаем заказы "тихо" (без блокировки экрана)
+            // Загружаем только свежие данные, не блокируя интерфейс
             const orders = await api.fetchOrders();
             
-            // Обновляем состояние
+            // Сравниваем длину массивов или хеши, чтобы лишний раз не перерисовывать DOM?
+            // Пока для простоты обновляем всегда, но реже.
             state.setOrders(orders);
-            // Перерисовываем таблицу (фильтры применятся автоматически)
             handleRenderOrders();
-            
         } catch (e) {
-            // Ошибки в консоль (тихо), чтобы не пугать юзера
-            console.warn("Auto-refresh skipped:", e);
+            console.warn("Auto-refresh skipped (network error or server busy):", e);
         }
     }
-
-    // 2. Запускаем следующий цикл через 1 секунду (1000 мс)
-    setTimeout(startAutoRefreshLoop, 1000);
+    // 👇 ВОТ ЗДЕСЬ ИЗМЕНЕНИЕ: 1000 -> 10000
+    setTimeout(startAutoRefreshLoop, 10000);
 }
 
 async function initApp() {
@@ -67,7 +60,6 @@ async function initApp() {
         ui.showNotification('Ошибка', 'Не удалось загрузить данные', 'error');
     }
     
-    // Устанавливаем минимальную дату для полей ввода (сегодня)
     const today = new Date().toISOString().split('T')[0];
     document.querySelectorAll('input[type="date"]').forEach(input => {
         input.setAttribute('min', today);
@@ -77,170 +69,220 @@ async function initApp() {
 }
 
 function setupEventListeners() {
-    // --- Модальное окно (Создание/Редактирование) ---
+    // --- Модальное окно ---
     ui.addOrderBtn?.addEventListener('click', () => {
         state.setCurrentEditingOrderId(null);
         ui.openOrderModal();
-        isModalOpen = true; // БЛОКИРУЕМ авто-обновление
+        isModalOpen = true; 
     });
     
     ui.closeModalBtn?.addEventListener('click', () => {
         ui.closeOrderModal();
-        isModalOpen = false; // РАЗРЕШАЕМ авто-обновление
+        isModalOpen = false; 
     });
     ui.cancelBtn?.addEventListener('click', () => {
         ui.closeOrderModal();
         isModalOpen = false;
     });
     
+    // Закрытие по ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isModalOpen) {
+            ui.closeOrderModal();
+            isModalOpen = false;
+        }
+    });
+
     ui.saveBtn?.addEventListener('click', handleSaveOrder);
     ui.orderForm?.addEventListener('submit', (e) => { e.preventDefault(); handleSaveOrder(); });
     ui.addItemBtn?.addEventListener('click', ui.addItemRow);
 
-    // --- Кнопка Синхронизации ---
     ui.syncBtn?.addEventListener('click', handleSync);
     
-    // --- 👇 ОБРАБОТЧИКИ КНОПОК ФИЛЬТРОВ (МУЛЬТИ-ВЫБОР) 👇 ---
-    
-    // Кнопка "Готово"
+    // --- Фильтры ---
     ui.showReadyBtn?.addEventListener('click', () => {
-        // Тогглим (переключаем) класс active
         ui.showReadyBtn.classList.toggle('active');
-        // Сбрасываем старый выпадающий список в "Все"
         if (ui.statusFilter) ui.statusFilter.value = 'all'; 
         handleRenderOrders();
     });
 
-    // Кнопка "В процессе"
     ui.showInProgressBtn?.addEventListener('click', () => {
         ui.showInProgressBtn.classList.toggle('active');
         if (ui.statusFilter) ui.statusFilter.value = 'all';
         handleRenderOrders();
     });
 
-    // Кнопка "Не готово"
     ui.showNotReadyBtn?.addEventListener('click', () => {
         ui.showNotReadyBtn.classList.toggle('active');
         if (ui.statusFilter) ui.statusFilter.value = 'all';
         handleRenderOrders();
     });
 
-    // Кнопка "Сбросить фильтры"
     ui.resetFiltersBtn?.addEventListener('click', () => {
-        // Очищаем поиск и фильтры
         if (ui.searchInput) ui.searchInput.value = '';
         if (ui.statusFilter) ui.statusFilter.value = 'all';
         if (ui.urgencyFilter) ui.urgencyFilter.value = 'all';
         
-        // Снимаем активность со всех кнопок
         ui.showReadyBtn?.classList.remove('active');
         ui.showInProgressBtn?.classList.remove('active');
         ui.showNotReadyBtn?.classList.remove('active');
         
+        // Сброс сортировки
+        state.setSortConfig('created_at', 'desc');
+        updateSortIcons();
+        
         handleRenderOrders();
     });
-    // --- 👆 КОНЕЦ БЛОКА ФИЛЬТРОВ 👆 ---
 
-    // Остальные фильтры (Поиск, Выпадающие списки)
     ui.searchInput?.addEventListener('input', handleRenderOrders);
-    
-    // Если пользователь все-таки использует выпадающий список "Статус",
-    // сбрасываем кнопки быстрого фильтра, чтобы не путать логику
     ui.statusFilter?.addEventListener('change', () => {
         ui.showReadyBtn?.classList.remove('active');
         ui.showInProgressBtn?.classList.remove('active');
         ui.showNotReadyBtn?.classList.remove('active');
         handleRenderOrders();
     });
-    
     ui.urgencyFilter?.addEventListener('change', handleRenderOrders);
 
-    // Уведомления
     ui.notificationCloseBtn?.addEventListener('click', ui.closeNotification);
     
-    // Таблица (Делегирование событий клика на всю таблицу)
-    ui.ordersTableBody?.addEventListener('click', handleTableClick);
+    // --- Делегирование кликов в таблице ---
+    ui.ordersTableBody?.addEventListener('click', (e) => {
+        handleTableClick(e);
+        
+        // Копирование имени клиента
+        const copyTarget = e.target.closest('.copy-client');
+        if (copyTarget) {
+            const text = copyTarget.dataset.text;
+            navigator.clipboard.writeText(text).then(() => {
+                ui.showNotification('Скопировано', `Клиент "${text}" скопирован в буфер`, 'success');
+            }).catch(err => {
+                console.error('Ошибка копирования', err);
+            });
+        }
+    });
 
-    // Проверка сроков каждые 5 минут
+    // Сортировка при клике на шапку
+    const tableHead = document.querySelector('#ordersTable thead');
+    tableHead?.addEventListener('click', (e) => {
+        const th = e.target.closest('th.sortable');
+        if (!th) return;
+
+        const field = th.dataset.sort;
+        const currentSort = state.getSortConfig();
+        
+        let newDirection = 'asc';
+        if (currentSort.field === field && currentSort.direction === 'asc') {
+            newDirection = 'desc';
+        }
+
+        state.setSortConfig(field, newDirection);
+        updateSortIcons();
+        handleRenderOrders();
+    });
+
     setInterval(checkUrgentOrders, 300000); 
 }
 
 /**
- * Главная функция фильтрации и отрисовки.
- * Реализует логику "Мульти-фильтра" (ИЛИ).
+ * Обновляет иконки стрелочек в шапке
  */
+function updateSortIcons() {
+    const currentSort = state.getSortConfig();
+    const headers = document.querySelectorAll('th.sortable');
+    
+    headers.forEach(th => {
+        const icon = th.querySelector('i');
+        // Сброс всех иконок
+        icon.className = 'fas fa-sort';
+        icon.style.opacity = '0.3';
+        
+        if (th.dataset.sort === currentSort.field) {
+            icon.style.opacity = '1';
+            icon.className = currentSort.direction === 'asc' 
+                ? 'fas fa-sort-up' 
+                : 'fas fa-sort-down';
+        }
+    });
+}
+
 function handleRenderOrders() {
     const orders = state.getOrders();
-    // Если orders еще не загрузились (null/undefined), выходим
     if (!orders) return;
 
     const searchTerm = ui.searchInput ? ui.searchInput.value.toLowerCase() : '';
     
-    // 1. Проверяем, какие кнопки фильтров нажаты (активны)
     const showReady = ui.showReadyBtn ? ui.showReadyBtn.classList.contains('active') : false;
     const showInProgress = ui.showInProgressBtn ? ui.showInProgressBtn.classList.contains('active') : false;
     const showNotReady = ui.showNotReadyBtn ? ui.showNotReadyBtn.classList.contains('active') : false;
     
-    // 2. Собираем список разрешенных статусов
     let allowedStatuses = [];
-    
-    // Если хоть одна кнопка нажата, добавляем соответствующие статусы в "белый список"
     if (showReady || showInProgress || showNotReady) {
         if (showReady) allowedStatuses.push('ready');
         if (showInProgress) allowedStatuses.push('in-progress');
         if (showNotReady) allowedStatuses.push('not-ready');
     } else {
-        // Если НИ ОДНА кнопка не нажата — разрешаем ВСЕ статусы (поведение по умолчанию)
         allowedStatuses = ['ready', 'in-progress', 'not-ready'];
     }
 
-    // Учитываем выпадающий список, если кнопки не активны (резервный вариант)
     const statusSelectValue = ui.statusFilter ? ui.statusFilter.value : 'all';
     const urgencyValue = ui.urgencyFilter ? ui.urgencyFilter.value : 'all';
     
-    const filteredOrders = orders.filter(order => {
-        // А. Фильтр Поиска
+    // 1. Фильтрация
+    let filteredOrders = orders.filter(order => {
         const matchesSearch = searchTerm === '' || 
             order.client.toLowerCase().includes(searchTerm) ||
             order.items.some(item => item.name.toLowerCase().includes(searchTerm));
         
-        // Б. Фильтр Статуса
-        // Логика: Либо статус входит в список кнопок, 
-        // Либо (если кнопки не нажаты) он совпадает с выпадающим списком 'all'
         let matchesStatus = allowedStatuses.includes(order.status);
-        
-        // Если кнопки выключены, но выбран статус в <select>, проверяем его
         if (!showReady && !showInProgress && !showNotReady && statusSelectValue !== 'all') {
             matchesStatus = (order.status === statusSelectValue);
         }
         
-        // В. Фильтр Срочности
         let matchesUrgency = urgencyValue === 'all';
         if (urgencyValue !== 'all') {
             matchesUrgency = order.items.some(item => {
-                if (item.status === 'ready') return false; // Готовые не считаем срочными
+                if (item.status === 'ready') return false; 
                 const daysUntilDeadline = getDaysUntilDeadline(item.deadline);
-                
-                if (urgencyValue === 'urgent') {
-                    // Срочно: Сегодня (0) или Завтра (1) или Просрочено (<0)
-                    return daysUntilDeadline <= 1;
-                } else if (urgencyValue === 'very-urgent') {
-                    // Очень срочно: Сегодня или Просрочено
-                    return daysUntilDeadline <= 0;
-                }
+                if (urgencyValue === 'urgent') return daysUntilDeadline <= 1;
+                else if (urgencyValue === 'very-urgent') return daysUntilDeadline <= 0;
                 return false;
             });
         }
-        
-        // ВСЕ условия должны совпасть
         return matchesSearch && matchesStatus && matchesUrgency;
+    });
+
+    // 2. Сортировка
+    const sortConfig = state.getSortConfig();
+    
+    filteredOrders.sort((a, b) => {
+        let valA, valB;
+
+        // Выбираем поле для сравнения
+        if (sortConfig.field === 'id') {
+            valA = a.id;
+            valB = b.id;
+        } else if (sortConfig.field === 'client') {
+            valA = a.client.toLowerCase();
+            valB = b.client.toLowerCase();
+        } else if (sortConfig.field === 'status') {
+            const statusWeight = { 'not-ready': 1, 'in-progress': 2, 'ready': 3 };
+            valA = statusWeight[a.status] || 0;
+            valB = statusWeight[b.status] || 0;
+        } else {
+            // По умолчанию (created_at)
+            valA = new Date(a.created_at).getTime();
+            valB = new Date(b.created_at).getTime();
+        }
+
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
     });
     
     ui.renderOrders(filteredOrders);
 }
 
 function handleTableClick(e) {
-    // 1. Кнопка "Редактировать"
     const editBtn = e.target.closest('.edit-btn');
     if (editBtn) {
         const orderId = parseInt(editBtn.dataset.id);
@@ -248,7 +290,6 @@ function handleTableClick(e) {
         return;
     }
     
-    // 2. Кнопка "Архив"
     const archiveBtn = e.target.closest('.archive-btn');
     if (archiveBtn) {
         const orderId = parseInt(archiveBtn.dataset.id);
@@ -256,7 +297,6 @@ function handleTableClick(e) {
         return;
     }
 
-    // 3. Кнопка "Удалить"
     const deleteBtn = e.target.closest('.delete-btn');
     if (deleteBtn) {
         const orderId = parseInt(deleteBtn.dataset.id);
@@ -264,7 +304,6 @@ function handleTableClick(e) {
         return;
     }
 
-    // 4. Клик по статусу товара (быстрая смена)
     const statusSpan = e.target.closest('.item-status');
     if (statusSpan) {
         const orderId = parseInt(statusSpan.dataset.orderId);
@@ -278,23 +317,14 @@ function handleTableClick(e) {
 }
 
 async function handleSync() {
-    // 1. Показываем уведомление о начале
     ui.showNotification('Синхронизация', 'Выгрузка данных в Google Таблицу...', 'info');
-    
     try {
-        // 2. Сначала отправляем данные в Google
         await api.syncGoogleSheets();
-        
-        // 3. Затем обновляем данные на экране (как раньше)
         await initApp(); 
-        
         ui.showNotification('Успешно', 'Данные сохранены в Google и обновлены!', 'success');
-        
     } catch (error) {
         console.error(error);
         ui.showNotification('Ошибка', 'Не удалось выгрузить в Google. ' + error.message, 'error');
-        
-        // Даже если Google упал, попробуем обновить локальные данные
         await initApp();
     }
 }
@@ -322,15 +352,9 @@ async function handleSaveOrder() {
             allFieldsValid = false;
         }
         
-        // Если responsibleUserId пустой, отправляем null
         const userIdToSend = responsibleUserId && responsibleUserId !== "" 
                              ? parseInt(responsibleUserId) 
                              : null;
-        
-        // Получаем ID товара (если это редактирование старого товара)
-        // Мы можем хранить ID товара в data-атрибуте карточки, но для простоты
-        // бэкенд сам разберется по логике "обновления" в сериализаторе.
-        // Если нужно точное обновление конкретного ID, его нужно передавать.
         
         items.push({ 
             name: productName, 
@@ -355,15 +379,10 @@ async function handleSaveOrder() {
     const orderId = state.getCurrentEditingOrderId();
 
     try {
-        // Отправляем на сервер
         await api.saveOrder(orderData, orderId);
-        
         ui.closeOrderModal();
         isModalOpen = false; 
-        
-        // Сразу же обновляем данные
         await initApp();
-        
         ui.showNotification('Успешно', orderId ? 'Заказ обновлен' : 'Заказ создан', 'success');
     } catch (error) {
         console.error(error);
@@ -376,7 +395,7 @@ function handleEditOrder(orderId) {
     if (order) {
         state.setCurrentEditingOrderId(orderId);
         ui.openOrderModal(order);
-        isModalOpen = true; // Блокируем обновление фона
+        isModalOpen = true; 
     }
 }
 
@@ -404,37 +423,28 @@ async function handleArchiveOrder(orderId) {
     }
 }
 
-/**
- * Логика быстрого переключения статуса при клике на бейдж.
- */
 async function handleToggleItemStatus(orderId, itemId, itemName, itemQuantity) {
     const order = state.getOrders().find(o => o.id === orderId);
     if (!order) return;
 
-    // Ищем товар по ID или по имени (для совместимости)
     const item = itemId 
         ? order.items.find(i => i.id === itemId)
         : order.items.find(i => i.name === itemName && i.quantity === itemQuantity);
     
     if (!item) return;
     
-    // 1. Оптимистичное обновление (меняем в UI сразу для скорости)
     const oldStatus = item.status;
     
-    // Циклическое переключение: Not Ready -> In Progress -> Ready -> Not Ready
     if (item.status === 'not-ready') item.status = 'in-progress';
     else if (item.status === 'in-progress') item.status = 'ready';
     else item.status = 'not-ready';
 
-    // Перерисовываем таблицу с новым статусом немедленно
     handleRenderOrders();
 
     if (soundEnabled) playNotificationSound();
 
-    // 2. Готовим данные для отправки всего заказа
-    // (Django требует отправки всего списка items_write при обновлении через Nested Serializer)
     const itemsForApi = order.items.map(i => ({
-        id: i.id, // Важно передать ID, чтобы бэкенд обновил, а не создал дубль
+        id: i.id, 
         name: i.name,
         quantity: i.quantity,
         status: i.status,
@@ -449,23 +459,14 @@ async function handleToggleItemStatus(orderId, itemId, itemName, itemQuantity) {
     };
 
     try {
-        // 3. Отправляем на сервер
         await api.saveOrder(orderData, orderId);
-        
-        // Успех! Данные в базе обновлены.
-        // Другие клиенты увидят это через 1 сек благодаря startAutoRefreshLoop.
-        
     } catch (error) {
-        // Если ошибка - откатываем статус назад
         item.status = oldStatus;
         handleRenderOrders();
         ui.showNotification('Ошибка', 'Не удалось обновить статус', 'error');
     }
 }
 
-/**
- * Проверка срочных заказов для показа всплывающих уведомлений.
- */
 function checkUrgentOrders() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -510,9 +511,6 @@ function checkUrgentOrders() {
     }
 }
 
-/**
- * Сброс трекера уведомлений в полночь (чтобы завтра снова показать уведомления).
- */
 function resetNotificationTracking() {
     const now = new Date();
     const tomorrow = new Date(now);
