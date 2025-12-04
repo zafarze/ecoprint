@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     # Наши приложения
     'rest_framework',
     'orders', 
-    # 'sslserver', <-- УДАЛЕНО. Он не был нужен и вызывал ошибку с Python 3.12
 ]
 
 MIDDLEWARE = [
@@ -150,7 +149,7 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
 
-# --- 👇 ДОБАВЛЕННЫЙ БЛОК: Настройки безопасности для Production (HTTPS) ---
+# --- Настройки безопасности для Production (HTTPS) ---
 # Эти настройки включатся, только когда DEBUG = False
 if not DEBUG:
     CSRF_COOKIE_SECURE = True
@@ -160,4 +159,6 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_SSL_REDIRECT = True
 
-GEMINI_API_KEY = "AIzaSyBU9MJymSL_KOh4g5t90X9sjCTcduq68cQ"
+# --- API Keys ---
+# ИСПРАВЛЕНО: Берем ключ из переменных окружения, а не пишем его в коде
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')

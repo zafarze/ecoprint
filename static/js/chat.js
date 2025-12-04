@@ -1,5 +1,8 @@
 // static/js/chat.js
-import { csrftoken } from './utils.js'; // Используем твой utils
+// (ВЕРСИЯ С ЗАЩИТОЙ XSS)
+
+// 👇 Добавляем импорт escapeHtml
+import { csrftoken, escapeHtml } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const toggleBtn = document.getElementById('chatToggleBtn');
@@ -10,11 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const typing = document.getElementById('typingIndicator');
 
     // 1. Открытие/Закрытие
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn?.addEventListener('click', () => {
         widget.classList.toggle('active');
         if (widget.classList.contains('active')) {
             input.focus();
-            // Скролл вниз
             body.scrollTop = body.scrollHeight;
         }
     });
@@ -24,11 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = input.value.trim();
         if (!text) return;
 
-        // Добавляем сообщение юзера
-        addMessage(text, 'user');
+        // 👇 БЕЗОПАСНОСТЬ: Экранируем сообщение пользователя
+        addMessage(text, 'user', true); 
         input.value = '';
 
-        // Показываем "печатает..."
         typing.style.display = 'flex';
         body.scrollTop = body.scrollHeight;
 
@@ -44,35 +45,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             
-            // Скрываем "печатает..."
             typing.style.display = 'none';
 
             if (data.answer) {
-                // Преобразуем **text** в жирный шрифт для красоты
+                // Бот присылает Markdown (**bold**), нам нужно превратить его в HTML теги,
+                // НО сам текст бота мы считаем условно безопасным.
                 const formattedAnswer = data.answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                addMessage(formattedAnswer, 'bot');
+                // Сообщения бота не экранируем полностью, чтобы работали strong теги
+                addMessage(formattedAnswer, 'bot', false);
             } else {
-                addMessage('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'bot');
+                addMessage('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'bot', true);
             }
 
         } catch (error) {
             typing.style.display = 'none';
-            addMessage('Ошибка сети. Попробуйте позже.', 'bot');
+            addMessage('Ошибка сети. Попробуйте позже.', 'bot', true);
             console.error(error);
         }
     }
 
-    sendBtn.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', (e) => {
+    sendBtn?.addEventListener('click', sendMessage);
+    input?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
 
-    function addMessage(text, sender) {
+    /**
+     * Добавляет сообщение в чат.
+     * @param {string} text - Текст сообщения
+     * @param {string} sender - 'user' или 'bot'
+     * @param {boolean} shouldEscape - Нужно ли экранировать HTML (True для юзера)
+     */
+    function addMessage(text, sender, shouldEscape) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${sender}`;
-        msgDiv.innerHTML = text; // Используем innerHTML для поддержки тегов <strong>
         
-        // Вставляем ПЕРЕД индикатором печати
+        // 👇 ГЛАВНОЕ ИСПРАВЛЕНИЕ:
+        if (shouldEscape) {
+            msgDiv.innerHTML = escapeHtml(text);
+        } else {
+            msgDiv.innerHTML = text;
+        }
+        
         body.insertBefore(msgDiv, typing);
         body.scrollTop = body.scrollHeight;
     }

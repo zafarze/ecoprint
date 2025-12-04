@@ -33,6 +33,8 @@ def notification_settings_view(request):
 
 @user_passes_test(is_superuser)
 def user_list_view(request):
+    # Показываем всех, кроме удаленных (is_active=False), если хотите видеть всех - уберите filter
+    # Но обычно в списке нужны активные. Если хотите видеть "архивных", уберите .filter(is_active=True)
     users = User.objects.all().order_by('username')
     return render(request, 'settings/user_list.html', {'users': users})
 
@@ -68,9 +70,12 @@ def user_delete_view(request, pk):
         if request.user.pk == user.pk:
             messages.error(request, 'Вы не можете удалить свой собственный аккаунт.')
             return redirect('user_list')
-        username = user.username
-        user.delete()
-        messages.success(request, f'Пользователь {username} был удален.')
+        
+        # --- Soft Delete (Деактивация вместо удаления) ---
+        user.is_active = False
+        user.save()
+        messages.success(request, f'Пользователь {user.username} деактивирован (доступ закрыт).')
+        
         return redirect('user_list')
     return render(request, 'settings/user_confirm_delete.html', {'user_to_delete': user})
 

@@ -22,65 +22,57 @@
                     </div>
                 </div>
                 
-                <div class="filter-row">
+                <div class="filter-row-primary">
                     <div class="search-box">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchInput" placeholder="Поиск по клиенту или товару...">
+                        <input type="text" id="searchInput" placeholder="Поиск по клиенту, номеру или товару...">
                     </div>
-                    <div class="filter-group">
-                        <label for="statusFilter">Статус заказа:</label>
-                        <select id="statusFilter">
-                            <option value="all">Все заказы</option>
-                            <option value="ready">Готовые</option>
-                            <option value="in-progress">В процессе</option>
-                            <option value="not-ready">Не готовые</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="urgencyFilter">Срочность:</label>
-                        <select id="urgencyFilter">
-                            <option value="all">Все</option>
-                            <option value="urgent">Срочные (сегодня/завтра)</option>
-                            <option value="very-urgent">Очень срочные (сегодня)</option>
-                        </select>
+                    
+                    <div class="status-filters-group">
+                        <button class="filter-chip-status" data-status="ready" id="showReadyBtn" title="Показать готовые">
+                            <i class="fas fa-check-circle"></i> Готовые
+                        </button>
+                        <button class="filter-chip-status" data-status="in-progress" id="showInProgressBtn" title="Показать в работе">
+                            <i class="fas fa-spinner"></i> В процессе
+                        </button>
+                        <button class="filter-chip-status" data-status="not-ready" id="showNotReadyBtn" title="Показать не готовые">
+                            <i class="fas fa-clock"></i> Не готовые
+                        </button>
+                        
+                        <button class="filter-chip-reset" id="resetFiltersBtn" title="Сбросить все фильтры">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
                 
-                <div class="quick-filters">
-                    <button class="quick-filter-btn" id="showReadyBtn">
-                        <i class="fas fa-check-circle"></i> Только готовые
-                    </button>
-                    <button class="quick-filter-btn" id="showInProgressBtn">
-                        <i class="fas fa-spinner fa-spin"></i> В процессе
-                    </button>
-                    <button class="quick-filter-btn" id="showNotReadyBtn">
-                        <i class="fas fa-clock"></i> Только не готовые
-                    </button>
-                    <button class="quick-filter-btn" id="resetFiltersBtn">
-                        <i class="fas fa-redo"></i> Сбросить фильтры
-                    </button>
+                <div class="filter-row-secondary">
+                    <div class="filter-label">
+                        <i class="fas fa-boxes"></i> Продукция:
+                    </div>
+                    <div class="product-filter-container" id="productFilterContainer">
+                        <span style="color: #9ca3af; font-size: 0.9em; padding: 5px;">Загрузка списка товаров...</span>
+                    </div>
                 </div>
             </div>
-
             <div class="table-card">
                 <table id="ordersTable">
                     <thead>
-    <tr>
-        <th style="width: 5%; cursor: pointer;" class="sortable" data-sort="id">
-            № <i class="fas fa-sort"></i>
-        </th>
-        <th style="width: 15%; cursor: pointer;" class="sortable" data-sort="client">
-            Клиент <i class="fas fa-sort"></i>
-        </th>
-        <th style="width: 45%;">Товары (в заказе)</th>
-        <th style="width: 15%; cursor: pointer;" class="sortable" data-sort="status">
-            Статус заказа <i class="fas fa-sort"></i>
-        </th>
-        <th style="width: 10%;">Действия</th>
-    </tr>
-</thead>
+                        <tr>
+                            <th style="width: 5%; cursor: pointer;" class="sortable" data-sort="id">
+                                № <i class="fas fa-sort"></i>
+                            </th>
+                            <th style="width: 15%; cursor: pointer;" class="sortable" data-sort="client">
+                                Клиент <i class="fas fa-sort"></i>
+                            </th>
+                            <th style="width: 45%;">Товары (в заказе)</th>
+                            <th style="width: 15%; cursor: pointer;" class="sortable" data-sort="status">
+                                Статус заказа <i class="fas fa-sort"></i>
+                            </th>
+                            <th style="width: 10%;">Действия</th>
+                        </tr>
+                    </thead>
                     <tbody id="ordersTableBody">
-                        </tbody>
+                    </tbody>
                 </table>
                 
                 <div class="empty-state" id="emptyState" style="display: none;">
@@ -132,7 +124,7 @@
                         </div>
                         
                         <div class="items-form-container" id="itemsFormContainer">
-                            </div>
+                        </div>
                         
                         <div class="add-item-section">
                             <button type="button" class="add-item-btn" id="addItemBtn">
@@ -150,7 +142,7 @@
                     <i class="fas fa-chevron-down" id="historyArrow" style="font-size: 0.8em; margin-left: auto; transition: transform 0.3s;"></i>
                 </h4>
                 <div id="historyContainer" style="display: none; max-height: 150px; overflow-y: auto; font-size: 0.85rem; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
-                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <div class="order-summary">

@@ -7,6 +7,7 @@ let _productCatalog = [];
 let _userCatalog = [];
 let _currentEditingOrderId = null;
 let _notificationShownToday = new Set();
+let _selectedProductFilters = new Set();
 
 let _sortConfig = {
     field: 'created_at', // По умолчанию сортируем по дате создания
@@ -47,4 +48,18 @@ export const clearNotificationSet = () => {
 export const getSortConfig = () => _sortConfig;
 export const setSortConfig = (field, direction) => {
     _sortConfig = { field, direction };
+};
+
+export const getSelectedProductFilters = () => Array.from(_selectedProductFilters);
+
+export const toggleProductFilter = (productName) => {
+    if (_selectedProductFilters.has(productName)) {
+        _selectedProductFilters.delete(productName);
+    } else {
+        _selectedProductFilters.add(productName);
+    }
+};
+
+export const clearProductFilters = () => {
+    _selectedProductFilters.clear();
 };

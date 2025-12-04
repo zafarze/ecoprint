@@ -4,7 +4,7 @@
 import * as state from './state.js';
 import * as api from './api.js';
 import * as ui from './ui.js';
-import { getDaysUntilDeadline, playNotificationSound } from './utils.js';
+import { getDaysUntilDeadline, playNotificationSound, escapeHtml } from './utils.js';
 
 const soundEnabled = window.USER_SETTINGS.soundEnabled;
 const popupEnabled = window.USER_SETTINGS.popupEnabled;
@@ -52,6 +52,7 @@ async function initApp() {
         state.setProductCatalog(catalogs.products);
         state.setUserCatalog(catalogs.users);
         
+        renderProductFilters(); 
         handleRenderOrders();
         checkUrgentOrders();
         
@@ -66,6 +67,37 @@ async function initApp() {
     });
     
     resetNotificationTracking();
+}
+
+// 2. Функция отрисовки кнопок продукции
+function renderProductFilters() {
+    const container = document.getElementById('productFilterContainer');
+    const products = state.getProductCatalog();
+    
+    if (!container || !products) return;
+    
+    container.innerHTML = '';
+    
+    products.forEach(product => {
+        const btn = document.createElement('div');
+        btn.className = 'product-chip';
+        // Если есть иконка, добавляем её
+        const iconHtml = product.icon ? `<i class="${product.icon}"></i> ` : '';
+        btn.innerHTML = `${iconHtml}${escapeHtml(product.name)}`;
+        
+        btn.addEventListener('click', () => {
+            // Переключаем состояние
+            state.toggleProductFilter(product.name);
+            
+            // Визуально меняем класс
+            btn.classList.toggle('active');
+            
+            // Перерисовываем таблицу
+            handleRenderOrders();
+        });
+        
+        container.appendChild(btn);
+    });
 }
 
 function setupEventListeners() {
@@ -119,20 +151,20 @@ function setupEventListeners() {
     });
 
     ui.resetFiltersBtn?.addEventListener('click', () => {
-        if (ui.searchInput) ui.searchInput.value = '';
-        if (ui.statusFilter) ui.statusFilter.value = 'all';
-        if (ui.urgencyFilter) ui.urgencyFilter.value = 'all';
-        
-        ui.showReadyBtn?.classList.remove('active');
-        ui.showInProgressBtn?.classList.remove('active');
-        ui.showNotReadyBtn?.classList.remove('active');
-        
-        // Сброс сортировки
-        state.setSortConfig('created_at', 'desc');
-        updateSortIcons();
-        
-        handleRenderOrders();
-    });
+    if (ui.searchInput) ui.searchInput.value = '';
+    
+    // Сброс кнопок статусов
+    ui.showReadyBtn?.classList.remove('active');
+    ui.showInProgressBtn?.classList.remove('active');
+    ui.showNotReadyBtn?.classList.remove('active');
+    
+    // Сброс продукции
+    state.clearProductFilters();
+    // Визуальный сброс кнопок продукции
+    document.querySelectorAll('.product-chip').forEach(chip => chip.classList.remove('active'));
+    
+    handleRenderOrders();
+});
 
     ui.searchInput?.addEventListener('input', handleRenderOrders);
     ui.statusFilter?.addEventListener('change', () => {
@@ -211,44 +243,38 @@ function handleRenderOrders() {
 
     const searchTerm = ui.searchInput ? ui.searchInput.value.toLowerCase() : '';
     
+    // Статусы
     const showReady = ui.showReadyBtn ? ui.showReadyBtn.classList.contains('active') : false;
     const showInProgress = ui.showInProgressBtn ? ui.showInProgressBtn.classList.contains('active') : false;
     const showNotReady = ui.showNotReadyBtn ? ui.showNotReadyBtn.classList.contains('active') : false;
     
-    let allowedStatuses = [];
-    if (showReady || showInProgress || showNotReady) {
-        if (showReady) allowedStatuses.push('ready');
-        if (showInProgress) allowedStatuses.push('in-progress');
-        if (showNotReady) allowedStatuses.push('not-ready');
-    } else {
-        allowedStatuses = ['ready', 'in-progress', 'not-ready'];
-    }
-
-    const statusSelectValue = ui.statusFilter ? ui.statusFilter.value : 'all';
-    const urgencyValue = ui.urgencyFilter ? ui.urgencyFilter.value : 'all';
+    // Продукция (Множественный выбор)
+    const selectedProducts = state.getSelectedProductFilters(); // ['Буклет', 'Китоб']
     
-    // 1. Фильтрация
     let filteredOrders = orders.filter(order => {
+        // 1. Поиск
         const matchesSearch = searchTerm === '' || 
             order.client.toLowerCase().includes(searchTerm) ||
+            String(order.id).includes(searchTerm) || // Добавил поиск по ID
             order.items.some(item => item.name.toLowerCase().includes(searchTerm));
         
-        let matchesStatus = allowedStatuses.includes(order.status);
-        if (!showReady && !showInProgress && !showNotReady && statusSelectValue !== 'all') {
-            matchesStatus = (order.status === statusSelectValue);
+        // 2. Статус (Логика: Если ничего не выбрано = показываем всё. Если выбрано = фильтруем по ИЛИ)
+        let matchesStatus = true;
+        if (showReady || showInProgress || showNotReady) {
+            matchesStatus = false;
+            if (showReady && order.status === 'ready') matchesStatus = true;
+            if (showInProgress && order.status === 'in-progress') matchesStatus = true;
+            if (showNotReady && order.status === 'not-ready') matchesStatus = true;
+        }
+
+        // 3. Продукция (Логика: Если выбраны 'Буклет' и 'Китоб', показываем заказы, где ЕСТЬ ХОТЯ БЫ ОДИН из них)
+        let matchesProduct = true;
+        if (selectedProducts.length > 0) {
+            // Проверяем, есть ли в заказе хоть один товар из списка выбранных
+            matchesProduct = order.items.some(item => selectedProducts.includes(item.name));
         }
         
-        let matchesUrgency = urgencyValue === 'all';
-        if (urgencyValue !== 'all') {
-            matchesUrgency = order.items.some(item => {
-                if (item.status === 'ready') return false; 
-                const daysUntilDeadline = getDaysUntilDeadline(item.deadline);
-                if (urgencyValue === 'urgent') return daysUntilDeadline <= 1;
-                else if (urgencyValue === 'very-urgent') return daysUntilDeadline <= 0;
-                return false;
-            });
-        }
-        return matchesSearch && matchesStatus && matchesUrgency;
+        return matchesSearch && matchesStatus && matchesProduct;
     });
 
     // 2. Сортировка
