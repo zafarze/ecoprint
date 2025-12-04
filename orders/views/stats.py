@@ -1,4 +1,5 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Count
 from django.db.models.functions import TruncDate, TruncMonth
@@ -7,9 +8,20 @@ from datetime import date, timedelta
 from ..models import Order, Item
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def statistics_data_view(request):
+    """
+    API для получения данных статистики.
+    Параметры: ?period=week|month|year
+    """
+    
     # 1. Получаем период из запроса (по умолчанию 'week')
     period = request.query_params.get('period', 'week')
+    
+    # --- БЕЗОПАСНОСТЬ: Если пользователь НЕ админ, принудительно ставим 'week' ---
+    if not request.user.is_superuser:
+        period = 'week'
+    # -----------------------------------------------------------------------------
     
     today = date.today()
     start_date = today
@@ -28,8 +40,14 @@ def statistics_data_view(request):
     # KPI 1: Всего заказов (ЗА ВЫБРАННЫЙ ПЕРИОД)
     total_orders = orders_in_period.count()
     
-    # KPI 2: В процессе (Текущее состояние, не зависит от времени, но можно фильтровать)
-    pending_orders = Order.objects.filter(status='in-progress').count()
+    # KPI 2: В процессе (Текущее состояние, не зависит от времени, но можно фильтровать по созданным)
+    # Здесь логичнее показать сколько СЕЙЧАС в работе, независимо от даты создания, 
+    # или (как было у тебя) сколько из созданных за этот период сейчас в работе.
+    # Оставим вариант: сколько активных заказов из выборки периода.
+    pending_orders = orders_in_period.filter(status='in-progress').count()
+    
+    # Если хочешь "вообще всего в работе" (независимо от даты), используй:
+    # pending_orders = Order.objects.filter(status='in-progress').count()
     
     # KPI 3: Создано сегодня (Всегда за сегодня)
     created_today = Order.objects.filter(created_at__date=today).count()
@@ -65,10 +83,11 @@ def statistics_data_view(request):
             .order_by('period')
             
         for item in activity_query:
-            # Формат: "Янв 2025"
-            label = item['period'].strftime('%b %Y') 
-            activity_data['labels'].append(label)
-            activity_data['counts'].append(item['count'])
+            if item['period']:
+                # Формат: "Jan 2025" (зависит от локали сервера, можно настроить формат вручную)
+                label = item['period'].strftime('%b %Y') 
+                activity_data['labels'].append(label)
+                activity_data['counts'].append(item['count'])
             
     else:
         # ДЛЯ НЕДЕЛИ И МЕСЯЦА: Группируем по ДНЯМ
@@ -79,9 +98,9 @@ def statistics_data_view(request):
             .order_by('period')
         
         # Превращаем QuerySet в словарь для удобства {дата: кол-во}
-        data_dict = {item['period']: item['count'] for item in activity_query}
+        data_dict = {item['period']: item['count'] for item in activity_query if item['period']}
         
-        # Генерируем все дни (вдруг в какой-то день было 0 заказов)
+        # Генерируем все дни (чтобы график не "прыгал", если были дни без заказов)
         delta_days = (today - start_date).days
         for i in range(delta_days + 1):
             day = start_date + timedelta(days=i)

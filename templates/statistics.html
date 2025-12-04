@@ -20,11 +20,13 @@
         </div>
 
         <div class="stats-controls-wrapper">
-            <div class="stats-controls">
-                <button class="btn-stat active" data-period="week">Неделя</button>
-                <button class="btn-stat" data-period="month">Месяц</button>
-                <button class="btn-stat" data-period="year">Год</button>
-            </div>
+            {% if request.user.is_superuser %}
+                <div class="stats-controls">
+                    <button class="btn-stat active" data-period="week">Неделя</button>
+                    <button class="btn-stat" data-period="month">Месяц</button>
+                    <button class="btn-stat" data-period="year">Год</button>
+                </div>
+            {% endif %}
         </div>
         
         <div class="kpi-grid">
