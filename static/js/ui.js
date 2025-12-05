@@ -39,11 +39,6 @@ export const sidebar = document.querySelector(".sidebar");
 export const pageContainer = document.querySelector(".page-container");
 export const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
 
-// --- 2. Функции отрисовки (View) ---
-
-/**
- * Главная функция отрисовки таблицы заказов.
- */
 export function renderOrders(filteredOrders) {
     if (!ordersTableBody) return;
 
@@ -59,9 +54,13 @@ export function renderOrders(filteredOrders) {
     // Получаем права доступа из глобальной переменной (из HTML)
     const canDelete = window.USER_PERMISSIONS && window.USER_PERMISSIONS.is_superuser;
     
-    filteredOrders.forEach(order => {
+    // Добавили index вторым аргументом для нумерации 1, 2, 3...
+    filteredOrders.forEach((order, index) => {
         const itemCount = order.items.length;
         if (itemCount === 0) return; 
+
+        // Считаем порядковый номер строки
+        const rowNumber = index + 1;
 
         const sortedItems = [...order.items].sort((a, b) => {
             const statusOrder = { 'not-ready': 0, 'in-progress': 1, 'ready': 2 };
@@ -142,10 +141,13 @@ export function renderOrders(filteredOrders) {
         
         itemsContainerHtml += '</div>';
 
-        // 👇 И ЗДЕСЬ (Имя клиента)
+        // 👇 ФОРМИРУЕМ СТРОКУ ТАБЛИЦЫ
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${order.id}</td>
+            <td>
+                <span style="font-weight:bold; color:#6b7280;">#${rowNumber}</span>
+                <div style="font-size:10px; color:#9ca3af;">ID:${order.id}</div>
+            </td>
             <td>
                 <strong class="copy-client" 
                         data-text="${escapeHtml(order.client)}" 
@@ -161,7 +163,6 @@ export function renderOrders(filteredOrders) {
         ordersTableBody.appendChild(row);
     });
 }
-
 // --- 3. Функции Модального окна ---
 
 /**

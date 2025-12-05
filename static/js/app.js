@@ -304,54 +304,53 @@ function handleRenderOrders() {
     // Вспомогательная функция: найти самый ранний дедлайн в заказе
     const getEarliestDeadline = (order) => {
         if (!order.items || order.items.length === 0) return 9999999999999;
-        // Берем минимальную дату из всех товаров заказа
         return Math.min(...order.items.map(i => i.deadline ? new Date(i.deadline).getTime() : 9999999999999));
     };
 
     filteredOrders.sort((a, b) => {
-        // Если пользователь нажал сортировку в шапке таблицы (например, по ID или Клиенту)
+        // Если пользователь нажал сортировку в шапке таблицы вручную
         if (sortConfig.field !== 'default') {
-            let valA = a[sortConfig.field];
-            let valB = b[sortConfig.field];
-            
-            // Спец. обработка для статусов при ручной сортировке
-            if (sortConfig.field === 'status') {
-                // При ручной сортировке просто группируем, логика ниже важнее для дефолта
+             // ... (код ручной сортировки оставляем как был) ...
+             // (Для краткости не пишу, он у тебя уже есть)
+             let valA = a[sortConfig.field];
+             let valB = b[sortConfig.field];
+             if (sortConfig.field === 'status') {
                 const w = { 'in-progress': 1, 'not-ready': 2, 'ready': 3 };
                 valA = w[a.status] || 99;
                 valB = w[b.status] || 99;
             }
-
             if (typeof valA === 'string') valA = valA.toLowerCase();
             if (typeof valB === 'string') valB = valB.toLowerCase();
-
             if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
             if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
             return 0;
         }
 
-        // --- ДЕФОЛТНАЯ СОРТИРОВКА (УМНАЯ) ---
-        
-        // 1. Приоритет Статуса: В процессе -> Не готов -> Готов
-        const statusWeight = { 
-            'in-progress': 10,  // Самый важный (сверху)
-            'not-ready': 20,    // Потом не готовые
-            'ready': 30         // В самом низу готовые
-        };
-        
-        const weightA = statusWeight[a.status] || 99;
-        const weightB = statusWeight[b.status] || 99;
+        // --- НОВАЯ "УМНАЯ" СОРТИРОВКА ---
 
-        if (weightA !== weightB) {
-            return weightA - weightB; // Сортируем по весу (меньше вес = выше)
-        }
+        // 1. Сначала разделяем: Активные (вверх) vs Готовые (вниз)
+        const isReadyA = a.status === 'ready';
+        const isReadyB = b.status === 'ready';
 
-        // 2. Внутри одного статуса сортируем по СРОЧНОСТИ (Deadline)
-        // Чем меньше дата (ближе срок), тем выше заказ
+        if (isReadyA && !isReadyB) return 1; // A (Готов) идет вниз
+        if (!isReadyA && isReadyB) return -1; // B (Готов) идет вниз
+
+        // 2. Теперь сортируем Активные строго по ДЕДЛАЙНУ (по возрастанию)
+        // То есть: Вчера < Сегодня < Завтра < Через месяц
         const deadlineA = getEarliestDeadline(a);
         const deadlineB = getEarliestDeadline(b);
 
-        return deadlineA - deadlineB;
+        if (deadlineA !== deadlineB) {
+            return deadlineA - deadlineB;
+        }
+
+        // 3. Если дедлайны одинаковые, тогда по статусу (В процессе выше, чем Не готов)
+        const statusWeight = { 
+            'in-progress': 1, 
+            'not-ready': 2, 
+            'ready': 3
+        };
+        return (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99);
     });
     
     ui.renderOrders(filteredOrders);
