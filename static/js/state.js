@@ -10,7 +10,7 @@ let _notificationShownToday = new Set();
 let _selectedProductFilters = new Set();
 
 let _sortConfig = {
-    field: 'created_at', // По умолчанию сортируем по дате создания
+    field: 'default', // По умолчанию сортируем по дате создания
     direction: 'desc'    // Сначала новые
 };
 // --- Публичные функции (Геттеры и Сеттеры) ---

@@ -21,12 +21,14 @@
             
             <div class="profile-dropdown">
                 <button class="btn avatar-btn" id="avatarBtn">
-                    {% if request.user.profile.avatar %}
-                        <img src="{{ request.user.profile.avatar.url }}" class="header-avatar-img" alt="Аватар">
-                    {% else %}
-                        <i class="fas fa-user"></i>
-                    {% endif %}
-                </button>
+    {% if request.user.profile.avatar %}
+        <img src="{{ request.user.profile.avatar.url }}" class="header-avatar-img">
+    {% else %}
+        <span style="font-weight:bold; font-size: 18px;">
+            {{ request.user.username|make_list|first|upper }}
+        </span>
+    {% endif %}
+</button>
                 
                 <div class="dropdown-menu" id="profileDropdownMenu" style="display: none;">
                     <a href="{% url 'profile_page' %}" class="dropdown-item">

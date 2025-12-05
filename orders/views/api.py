@@ -53,6 +53,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         try:
             order = self.get_object()
             c = order.items.update(is_archived=True)
+            
+            # ДОБАВИТЬ ЭТУ СТРОКУ:
+            order.update_status() 
+            
             return Response({'status': 'success', 'message': f'{c} товаров архивировано.'})
         except Exception as e:
             return Response({'status': 'error', 'message': str(e)}, status=400)
@@ -62,6 +66,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         try:
             order = self.get_object()
             c = order.items.update(is_archived=False)
+            
+            # ДОБАВИТЬ ЭТУ СТРОКУ:
+            order.update_status()
+            
             return Response({'status': 'success', 'message': f'{c} товаров восстановлено.'})
         except Exception as e:
             return Response({'status': 'error', 'message': str(e)}, status=400)

@@ -72,27 +72,48 @@ async function initApp() {
 // 2. Функция отрисовки кнопок продукции
 function renderProductFilters() {
     const container = document.getElementById('productFilterContainer');
-    const products = state.getProductCatalog();
+    // Берем полный справочник, чтобы знать иконки
+    const fullCatalog = state.getProductCatalog();
+    // Берем ВСЕ текущие загруженные заказы
+    const allOrders = state.getOrders();
     
-    if (!container || !products) return;
+    if (!container || !fullCatalog || !allOrders) return;
     
+    // 1. Собираем список имен товаров, которые ЕСТЬ в активных заказах
+    const activeProductNames = new Set();
+    allOrders.forEach(order => {
+        // Проверяем, не в архиве ли (если нужно), но state.getOrders обычно возвращает активные
+        order.items.forEach(item => {
+            activeProductNames.add(item.name);
+        });
+    });
+
+    // 2. Фильтруем каталог: оставляем только те, что нашли выше
+    const visibleProducts = fullCatalog.filter(product => activeProductNames.has(product.name));
+    
+    // Очищаем контейнер
     container.innerHTML = '';
     
-    products.forEach(product => {
+    if (visibleProducts.length === 0) {
+        container.innerHTML = '<span style="color:#9ca3af; font-size:0.9em;">Нет активных категорий</span>';
+        return;
+    }
+
+    // 3. Рисуем кнопки
+    visibleProducts.forEach(product => {
         const btn = document.createElement('div');
         btn.className = 'product-chip';
-        // Если есть иконка, добавляем её
+        // Если этот фильтр уже был выбран ранее - подсвечиваем его
+        if (state.getSelectedProductFilters().includes(product.name)) {
+            btn.classList.add('active');
+        }
+
         const iconHtml = product.icon ? `<i class="${product.icon}"></i> ` : '';
         btn.innerHTML = `${iconHtml}${escapeHtml(product.name)}`;
         
         btn.addEventListener('click', () => {
-            // Переключаем состояние
             state.toggleProductFilter(product.name);
-            
-            // Визуально меняем класс
             btn.classList.toggle('active');
-            
-            // Перерисовываем таблицу
             handleRenderOrders();
         });
         
@@ -248,18 +269,19 @@ function handleRenderOrders() {
     const showInProgress = ui.showInProgressBtn ? ui.showInProgressBtn.classList.contains('active') : false;
     const showNotReady = ui.showNotReadyBtn ? ui.showNotReadyBtn.classList.contains('active') : false;
     
-    // Продукция (Множественный выбор)
-    const selectedProducts = state.getSelectedProductFilters(); // ['Буклет', 'Китоб']
+    const selectedProducts = state.getSelectedProductFilters(); 
     
+    // 1. ФИЛЬТРАЦИЯ
     let filteredOrders = orders.filter(order => {
-        // 1. Поиск
+        // Поиск
         const matchesSearch = searchTerm === '' || 
             order.client.toLowerCase().includes(searchTerm) ||
-            String(order.id).includes(searchTerm) || // Добавил поиск по ID
+            String(order.id).includes(searchTerm) ||
             order.items.some(item => item.name.toLowerCase().includes(searchTerm));
         
-        // 2. Статус (Логика: Если ничего не выбрано = показываем всё. Если выбрано = фильтруем по ИЛИ)
+        // Статус
         let matchesStatus = true;
+        // Если хоть одна кнопка нажата, включаем фильтр. Если ни одной - показываем всё.
         if (showReady || showInProgress || showNotReady) {
             matchesStatus = false;
             if (showReady && order.status === 'ready') matchesStatus = true;
@@ -267,42 +289,69 @@ function handleRenderOrders() {
             if (showNotReady && order.status === 'not-ready') matchesStatus = true;
         }
 
-        // 3. Продукция (Логика: Если выбраны 'Буклет' и 'Китоб', показываем заказы, где ЕСТЬ ХОТЯ БЫ ОДИН из них)
+        // Продукция
         let matchesProduct = true;
         if (selectedProducts.length > 0) {
-            // Проверяем, есть ли в заказе хоть один товар из списка выбранных
             matchesProduct = order.items.some(item => selectedProducts.includes(item.name));
         }
         
         return matchesSearch && matchesStatus && matchesProduct;
     });
 
-    // 2. Сортировка
+    // 2. СОРТИРОВКА (ИЗМЕНЕНО ПО ТВОЕЙ ПРОСЬБЕ)
     const sortConfig = state.getSortConfig();
     
-    filteredOrders.sort((a, b) => {
-        let valA, valB;
+    // Вспомогательная функция: найти самый ранний дедлайн в заказе
+    const getEarliestDeadline = (order) => {
+        if (!order.items || order.items.length === 0) return 9999999999999;
+        // Берем минимальную дату из всех товаров заказа
+        return Math.min(...order.items.map(i => i.deadline ? new Date(i.deadline).getTime() : 9999999999999));
+    };
 
-        // Выбираем поле для сравнения
-        if (sortConfig.field === 'id') {
-            valA = a.id;
-            valB = b.id;
-        } else if (sortConfig.field === 'client') {
-            valA = a.client.toLowerCase();
-            valB = b.client.toLowerCase();
-        } else if (sortConfig.field === 'status') {
-            const statusWeight = { 'not-ready': 1, 'in-progress': 2, 'ready': 3 };
-            valA = statusWeight[a.status] || 0;
-            valB = statusWeight[b.status] || 0;
-        } else {
-            // По умолчанию (created_at)
-            valA = new Date(a.created_at).getTime();
-            valB = new Date(b.created_at).getTime();
+    filteredOrders.sort((a, b) => {
+        // Если пользователь нажал сортировку в шапке таблицы (например, по ID или Клиенту)
+        if (sortConfig.field !== 'default') {
+            let valA = a[sortConfig.field];
+            let valB = b[sortConfig.field];
+            
+            // Спец. обработка для статусов при ручной сортировке
+            if (sortConfig.field === 'status') {
+                // При ручной сортировке просто группируем, логика ниже важнее для дефолта
+                const w = { 'in-progress': 1, 'not-ready': 2, 'ready': 3 };
+                valA = w[a.status] || 99;
+                valB = w[b.status] || 99;
+            }
+
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
         }
 
-        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
+        // --- ДЕФОЛТНАЯ СОРТИРОВКА (УМНАЯ) ---
+        
+        // 1. Приоритет Статуса: В процессе -> Не готов -> Готов
+        const statusWeight = { 
+            'in-progress': 10,  // Самый важный (сверху)
+            'not-ready': 20,    // Потом не готовые
+            'ready': 30         // В самом низу готовые
+        };
+        
+        const weightA = statusWeight[a.status] || 99;
+        const weightB = statusWeight[b.status] || 99;
+
+        if (weightA !== weightB) {
+            return weightA - weightB; // Сортируем по весу (меньше вес = выше)
+        }
+
+        // 2. Внутри одного статуса сортируем по СРОЧНОСТИ (Deadline)
+        // Чем меньше дата (ближе срок), тем выше заказ
+        const deadlineA = getEarliestDeadline(a);
+        const deadlineB = getEarliestDeadline(b);
+
+        return deadlineA - deadlineB;
     });
     
     ui.renderOrders(filteredOrders);
